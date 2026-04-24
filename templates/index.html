@@ -1,318 +1,359 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Amazing Race Harvard ✦</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Amazing Race Harvard ✦</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400;1,14..32,700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  html, body {
-    width: 100%; height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #000;
-    overflow-x: hidden;
-  }
+    html, body {
+      width: 100%; height: 100%;
+      background: #000;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, sans-serif;
+    }
 
-  /* ── Video Background ── */
-  #video-bg {
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    min-width: 100vw;
-    min-height: 100vh;
-    width: auto; height: auto;
-    object-fit: cover;
-    z-index: 0;
-  }
+    /* ─── Video Background ─── */
+    .video-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
 
-  .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.62);
-    z-index: 1;
-  }
+    .video-bg video {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      min-width: 100%;
+      min-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: cover;
+    }
 
-  /* ── Main Content ── */
-  .content {
-    position: relative;
-    z-index: 2;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px 60px;
-    text-align: center;
-  }
+    /* Layered overlay: dark vignette, lighter in the centre */
+    .video-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.55) 100%),
+        linear-gradient(to bottom, rgba(0,0,0,0.60) 0%, rgba(0,0,0,0.22) 40%, rgba(0,0,0,0.22) 60%, rgba(0,0,0,0.72) 100%);
+    }
 
-  /* ── Logo ── */
-  .logo {
-    position: fixed;
-    top: 28px; left: 32px;
-    font-size: 18px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.85);
-    letter-spacing: 0.06em;
-    text-transform: lowercase;
-    z-index: 10;
-  }
+    /* ─── Brand ─── */
+    .brand {
+      position: fixed;
+      top: 28px; left: 32px;
+      z-index: 20;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.50);
+    }
 
-  /* ── Countdown ── */
-  .countdown-label {
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.45);
-    margin-bottom: 18px;
-    font-weight: 500;
-  }
+    /* ─── Stage ─── */
+    .stage {
+      position: relative;
+      z-index: 10;
+      width: 100%; height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0 24px;
+      gap: 0;
+    }
 
-  .countdown {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    justify-content: center;
-    margin-bottom: 48px;
-    flex-wrap: wrap;
-  }
+    /* ─── Rotating phrase row ─── */
+    .phrase-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 44px;
+      height: 36px;
+      overflow: visible;
+    }
 
-  .countdown-unit {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 72px;
-  }
+    .phrase-rotating {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: clamp(17px, 2.4vw, 22px);
+      font-weight: 400;
+      color: rgba(255, 230, 180, 0.90);
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
 
-  .countdown-number {
-    font-size: clamp(48px, 10vw, 88px);
-    font-weight: 800;
-    color: #fff;
-    line-height: 1;
-    letter-spacing: -2px;
-    font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 40px rgba(255,255,255,0.15);
-  }
+    .phrase-rotating.out {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
 
-  .countdown-sep {
-    font-size: clamp(40px, 8vw, 72px);
-    font-weight: 300;
-    color: rgba(255,255,255,0.25);
-    line-height: 1;
-    padding-top: 4px;
-    align-self: flex-start;
-  }
+    .phrase-static {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: clamp(17px, 2.4vw, 22px);
+      font-weight: 400;
+      color: rgba(255,255,255,0.38);
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      margin-left: 5px;
+    }
 
-  .countdown-text {
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.35);
-    margin-top: 8px;
-    font-weight: 500;
-  }
+    /* ─── "you have" ─── */
+    .label-top {
+      font-size: clamp(11px, 1.4vw, 13px);
+      font-weight: 500;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.40);
+      margin-bottom: 12px;
+    }
 
-  /* ── Rotating Text ── */
-  .rotating-wrapper {
-    height: 36px;
-    overflow: hidden;
-    margin-bottom: 36px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 320px;
-  }
+    /* ─── Countdown ─── */
+    .countdown {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: clamp(8px, 2.5vw, 28px);
+      margin-bottom: 12px;
+    }
 
-  .rotating-text {
-    font-size: clamp(14px, 3vw, 18px);
-    color: rgba(255,255,255,0.55);
-    font-style: italic;
-    font-weight: 400;
-    letter-spacing: 0.01em;
-    transition: opacity 0.5s ease, transform 0.5s ease;
-    white-space: nowrap;
-    position: absolute;
-  }
+    .cd-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
 
-  .rotating-text.hidden {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
+    .cd-num {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(56px, 12vw, 116px);
+      font-weight: 800;
+      line-height: 1;
+      color: #fff;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
 
-  .rotating-text.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
+    .cd-lbl {
+      font-size: clamp(8px, 1vw, 10px);
+      font-weight: 500;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.32);
+      margin-top: 7px;
+    }
 
-  /* ── Headline ── */
-  .headline {
-    font-size: clamp(26px, 5.5vw, 50px);
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: -1px;
-    line-height: 1.15;
-    margin-bottom: 40px;
-    max-width: 640px;
-  }
+    .cd-sep {
+      font-size: clamp(44px, 9vw, 88px);
+      font-weight: 200;
+      color: rgba(255,255,255,0.18);
+      line-height: 1;
+      padding-top: 2px;
+      align-self: flex-start;
+      user-select: none;
+    }
 
-  .headline .blank {
-    color: rgba(255,255,255,0.3);
-    font-style: italic;
-  }
+    /* ─── "left at Harvard" ─── */
+    .label-bottom {
+      font-size: clamp(11px, 1.4vw, 13px);
+      font-weight: 500;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.40);
+      margin-bottom: 48px;
+    }
 
-  /* ── CTA Button ── */
-  .cta-btn {
-    display: inline-block;
-    background: #fff;
-    color: #0a0a0a;
-    font-size: clamp(15px, 2.5vw, 17px);
-    font-weight: 700;
-    letter-spacing: -0.2px;
-    padding: 18px 40px;
-    border-radius: 999px;
-    text-decoration: none;
-    cursor: pointer;
-    border: none;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-    box-shadow: 0 4px 32px rgba(255,255,255,0.15);
-  }
+    /* ─── CTA ─── */
+    .cta-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 13px;
+    }
 
-  .cta-btn:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 48px rgba(255,255,255,0.25);
-    background: #f0f0f0;
-  }
+    .cta-btn {
+      display: inline-block;
+      padding: 16px 36px;
+      background: #fff;
+      color: #0a0a0a;
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(13px, 1.5vw, 15px);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-decoration: none;
+      border-radius: 100px;
+      white-space: nowrap;
+      transition: background 0.18s, transform 0.15s, box-shadow 0.18s;
+      box-shadow: 0 2px 28px rgba(0,0,0,0.40);
+    }
 
-  .cta-btn:active {
-    transform: scale(0.98);
-  }
+    .cta-btn:hover {
+      background: #ede4d4;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 40px rgba(0,0,0,0.50);
+    }
 
-  /* ── Footer ── */
-  .footer {
-    position: fixed;
-    bottom: 20px;
-    left: 0; right: 0;
-    text-align: center;
-    font-size: 11px;
-    color: rgba(255,255,255,0.18);
-    letter-spacing: 0.08em;
-    z-index: 10;
-  }
+    .cta-hint {
+      font-size: clamp(10px, 1.1vw, 12px);
+      font-weight: 400;
+      color: rgba(255,255,255,0.28);
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+    }
 
-  /* ── Mobile adjustments ── */
-  @media (max-width: 520px) {
-    .countdown { gap: 6px; }
-    .countdown-unit { min-width: 56px; }
-    .countdown-sep { display: none; }
-    .cta-btn { padding: 16px 24px; font-size: 14px; }
-    .rotating-wrapper { min-width: 280px; height: 48px; }
-    .rotating-text { white-space: normal; text-align: center; max-width: 280px; }
-    .logo { top: 16px; left: 16px; }
-  }
-</style>
+    /* ─── Footer ─── */
+    .footer {
+      position: fixed;
+      bottom: 22px;
+      left: 0; right: 0;
+      text-align: center;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.16);
+      z-index: 20;
+      text-transform: uppercase;
+    }
+
+    /* ─── Mobile ─── */
+    @media (max-width: 560px) {
+      .brand { top: 18px; left: 18px; font-size: 10px; }
+      .cd-sep { display: none; }
+      .countdown { gap: 10px; }
+      .phrase-row { margin-bottom: 32px; height: auto; }
+      .label-bottom { margin-bottom: 36px; }
+    }
+  </style>
 </head>
 <body>
 
-<div class="logo">orbit ✦</div>
-
-<!-- Video Background -->
-<video id="video-bg" autoplay muted loop playsinline>
-  <source src="/static/bg.mp4" type="video/mp4">
-</video>
-
-<div class="overlay"></div>
-
-<div class="content">
-  <div class="countdown-label">race begins in</div>
-
-  <div class="countdown">
-    <div class="countdown-unit">
-      <div class="countdown-number" id="weeks">00</div>
-      <div class="countdown-text">weeks</div>
-    </div>
-    <div class="countdown-sep">:</div>
-    <div class="countdown-unit">
-      <div class="countdown-number" id="days">00</div>
-      <div class="countdown-text">days</div>
-    </div>
-    <div class="countdown-sep">:</div>
-    <div class="countdown-unit">
-      <div class="countdown-number" id="hours">00</div>
-      <div class="countdown-text">hours</div>
-    </div>
-    <div class="countdown-sep">:</div>
-    <div class="countdown-unit">
-      <div class="countdown-number" id="seconds">00</div>
-      <div class="countdown-text">seconds</div>
-    </div>
+  <!-- Video -->
+  <div class="video-bg">
+    <video id="bg-video" autoplay muted loop playsinline preload="auto">
+      <source src="/static/bg.mp4" type="video/mp4" />
+    </video>
   </div>
 
-  <div class="rotating-wrapper">
-    <div class="rotating-text visible" id="rotating-text">have you ever...</div>
-  </div>
+  <!-- Brand -->
+  <div class="brand">orbit ✦</div>
 
-  <h1 class="headline">you have <span class="blank">___</span> left at Harvard</h1>
+  <!-- Main -->
+  <main class="stage">
 
-  <a class="cta-btn" href="/signup">Enter the Amazing Race Harvard ✦</a>
-</div>
+    <!-- Rotating phrase -->
+    <div class="phrase-row">
+      <span class="phrase-rotating" id="phrase">swam in the Charles river</span>
+      <span class="phrase-static">&nbsp;yet?</span>
+    </div>
 
-<div class="footer">orbit ✦ amazing race harvard</div>
+    <!-- you have -->
+    <div class="label-top">you have</div>
 
-<script>
-  // ── Countdown to May 28 2026 9:30am EST ──
-  // EST = UTC-5, so 9:30am EST = 13:30 UTC (EDT is UTC-4, so 9:30am EDT = 13:30 UTC)
-  const target = new Date('2026-05-28T13:30:00Z').getTime();
+    <!-- Countdown -->
+    <div class="countdown">
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-weeks">00</span>
+        <span class="cd-lbl">weeks</span>
+      </div>
+      <div class="cd-sep">·</div>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-days">00</span>
+        <span class="cd-lbl">days</span>
+      </div>
+      <div class="cd-sep">·</div>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-hours">00</span>
+        <span class="cd-lbl">hours</span>
+      </div>
+      <div class="cd-sep">·</div>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-secs">00</span>
+        <span class="cd-lbl">seconds</span>
+      </div>
+    </div>
 
-  function pad(n) { return String(n).padStart(2, '0'); }
+    <!-- left at Harvard -->
+    <div class="label-bottom">left at Harvard</div>
 
-  function updateCountdown() {
-    const now = Date.now();
-    let diff = Math.max(0, target - now);
+    <!-- CTA -->
+    <div class="cta-group">
+      <a href="/signup" class="cta-btn">Join the Amazing Race Harvard Waitlist ✦</a>
+      <span class="cta-hint">Harvard students only &nbsp;·&nbsp; limited spots</span>
+    </div>
 
-    const totalSeconds = Math.floor(diff / 1000);
-    const totalMinutes = Math.floor(totalSeconds / 60);
-    const totalHours   = Math.floor(totalMinutes / 60);
-    const totalDays    = Math.floor(totalHours / 24);
-    const weeks        = Math.floor(totalDays / 7);
-    const days         = totalDays % 7;
-    const hours        = totalHours % 24;
-    const seconds      = totalSeconds % 60;
+  </main>
 
-    document.getElementById('weeks').textContent   = pad(weeks);
-    document.getElementById('days').textContent    = pad(days);
-    document.getElementById('hours').textContent   = pad(hours);
-    document.getElementById('seconds').textContent = pad(seconds);
-  }
+  <!-- Footer -->
+  <div class="footer">orbit ✦ amazing race harvard</div>
 
-  updateCountdown();
-  setInterval(updateCountdown, 1000);
+  <script>
+    // ── Force video play (handle autoplay policy) ──
+    const vid = document.getElementById('bg-video');
+    vid.muted = true;
+    const playPromise = vid.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // If autoplay blocked, play on first user interaction
+        document.addEventListener('click', () => vid.play(), { once: true });
+        document.addEventListener('touchstart', () => vid.play(), { once: true });
+      });
+    }
 
-  // ── Rotating Text ──
-  const phrases = [
-    'swum in the Charles at midnight',
-    'watched sunrise from a rooftop',
-    'gotten lost in Boston with no plan',
-    'had dinner with someone you just met',
-    'made a friend you never expected',
-    'done something worth telling at your reunion'
-  ];
+    // ── Countdown to May 28 2026 9:30am EDT (UTC-4) = 13:30 UTC ──
+    const TARGET = new Date('2026-05-28T13:30:00Z').getTime();
 
-  let idx = 0;
-  const el = document.getElementById('rotating-text');
+    function pad(n) { return String(n).padStart(2, '0'); }
 
-  function rotateText() {
-    el.classList.remove('visible');
-    el.classList.add('hidden');
-    setTimeout(() => {
-      idx = (idx + 1) % phrases.length;
-      el.textContent = phrases[idx];
-      el.classList.remove('hidden');
-      el.classList.add('visible');
-    }, 500);
-  }
+    function tick() {
+      const diff = Math.max(0, TARGET - Date.now());
+      const s  = Math.floor(diff / 1000);
+      const m  = Math.floor(s / 60);
+      const h  = Math.floor(m / 60);
+      const d  = Math.floor(h / 24);
+      const w  = Math.floor(d / 7);
 
-  setInterval(rotateText, 3000);
-</script>
+      document.getElementById('cd-weeks').textContent = pad(w);
+      document.getElementById('cd-days').textContent  = pad(d % 7);
+      document.getElementById('cd-hours').textContent = pad(h % 24);
+      document.getElementById('cd-secs').textContent  = pad(s % 60);
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    // ── Rotating phrases ──
+    const PHRASES = [
+      'swam in the Charles river',
+      'watched sunrise from a rooftop',
+      'gotten lost in Boston with no plan',
+      'had dinner with someone you just met',
+      'made a friend you never expected',
+      'done something worth telling at your reunion',
+    ];
+
+    let phraseIdx = 0;
+    const phraseEl = document.getElementById('phrase');
+
+    function rotatePhrase() {
+      phraseEl.classList.add('out');
+      setTimeout(() => {
+        phraseIdx = (phraseIdx + 1) % PHRASES.length;
+        phraseEl.textContent = PHRASES[phraseIdx];
+        phraseEl.classList.remove('out');
+      }, 360);
+    }
+
+    setInterval(rotatePhrase, 2500);
+  </script>
+
 </body>
 </html>
