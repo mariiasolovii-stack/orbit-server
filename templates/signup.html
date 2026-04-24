@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Join the Race ✦</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    min-height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a0a;
+    color: #fff;
+  }
+
+  /* ── Video Background ── */
+  #video-bg {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 100vw;
+    min-height: 100vh;
+    width: auto; height: auto;
+    object-fit: cover;
+    z-index: 0;
+    opacity: 0.3;
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 1;
+  }
+
+  /* ── Page Layout ── */
+  .page {
+    position: relative;
+    z-index: 2;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 20px 80px;
+  }
+
+  /* ── Logo ── */
+  .logo {
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.06em;
+    text-transform: lowercase;
+    margin-bottom: 40px;
+    text-decoration: none;
+  }
+
+  .logo:hover { color: #fff; }
+
+  /* ── Form Card ── */
+  .card {
+    width: 100%;
+    max-width: 560px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    padding: 44px 40px;
+  }
+
+  .card-title {
+    font-size: clamp(22px, 4vw, 30px);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+
+  .card-sub {
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 36px;
+    line-height: 1.5;
+  }
+
+  /* ── Section Dividers ── */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    font-weight: 600;
+    margin-bottom: 16px;
+    margin-top: 28px;
+    padding-top: 28px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .section-label:first-of-type {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  /* ── Form Fields ── */
+  .field {
+    margin-bottom: 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"] {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 13px 16px;
+    font-size: 15px;
+    color: #fff;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    font-family: inherit;
+  }
+
+  input::placeholder { color: rgba(255,255,255,0.2); }
+
+  input:focus {
+    border-color: rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.09);
+  }
+
+  input.error {
+    border-color: #ff4d4d;
+    background: rgba(255,77,77,0.06);
+  }
+
+  .field-error {
+    font-size: 12px;
+    color: #ff6b6b;
+    margin-top: 5px;
+    display: none;
+  }
+
+  .field-error.show { display: block; }
+
+  /* ── Teammate Section ── */
+  .teammate-block {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 12px;
+  }
+
+  .teammate-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 14px;
+  }
+
+  .teammate-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .optional-badge {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.3);
+    padding: 2px 7px;
+    border-radius: 999px;
+    margin-left: 6px;
+    vertical-align: middle;
+    text-transform: uppercase;
+  }
+
+  /* ── Submit ── */
+  .submit-btn {
+    width: 100%;
+    margin-top: 32px;
+    padding: 17px;
+    background: #fff;
+    color: #0a0a0a;
+    font-size: 16px;
+    font-weight: 700;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    letter-spacing: -0.2px;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+    box-shadow: 0 4px 24px rgba(255,255,255,0.12);
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 32px rgba(255,255,255,0.2);
+    background: #f0f0f0;
+  }
+
+  .submit-btn:active { transform: scale(0.99); }
+
+  .submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ── Global error ── */
+  .global-error {
+    background: rgba(255,77,77,0.1);
+    border: 1px solid rgba(255,77,77,0.3);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #ff8080;
+    margin-top: 16px;
+    display: none;
+  }
+
+  .global-error.show { display: block; }
+
+  /* ── Mobile ── */
+  @media (max-width: 520px) {
+    .card { padding: 28px 20px; border-radius: 16px; }
+    .teammate-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<video id="video-bg" autoplay muted loop playsinline>
+  <source src="/static/bg.mp4" type="video/mp4">
+</video>
+<div class="overlay"></div>
+
+<div class="page">
+  <a class="logo" href="/">orbit ✦</a>
+
+  <div class="card">
+    <h1 class="card-title">Enter the Race ✦</h1>
+    <p class="card-sub">Secure your spot. One team, up to four people. Harvard emails only.</p>
+
+    <form id="signup-form" novalidate>
+
+      <!-- ── Your Info ── -->
+      <div class="section-label">Your Info</div>
+
+      <div class="field">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" name="name" placeholder="Your name" required>
+        <div class="field-error" id="name-error">Please enter your name.</div>
+      </div>
+
+      <div class="field">
+        <label for="email">Harvard Email</label>
+        <input type="email" id="email" name="email" placeholder="you@college.harvard.edu" required>
+        <div class="field-error" id="email-error">Must be a @college.harvard.edu or @harvard.edu address.</div>
+      </div>
+
+      <div class="field">
+        <label for="phone">Phone Number</label>
+        <input type="tel" id="phone" name="phone" placeholder="+1 617 000 0000" required>
+        <div class="field-error" id="phone-error">Please enter your phone number.</div>
+      </div>
+
+      <!-- ── Team ── -->
+      <div class="section-label">Your Team</div>
+
+      <div class="field">
+        <label for="team_name">Team Name</label>
+        <input type="text" id="team_name" name="team_name" placeholder="Give your crew a name" required>
+        <div class="field-error" id="team_name-error">Please enter a team name.</div>
+      </div>
+
+      <!-- Teammate 1 (required) -->
+      <div class="teammate-block">
+        <div class="teammate-title">Teammate 1</div>
+        <div class="teammate-row">
+          <div class="field">
+            <label for="t1_email">Email</label>
+            <input type="email" id="t1_email" name="t1_email" placeholder="teammate@harvard.edu" required>
+            <div class="field-error" id="t1_email-error">Must be a Harvard email.</div>
+          </div>
+          <div class="field">
+            <label for="t1_phone">Phone</label>
+            <input type="tel" id="t1_phone" name="t1_phone" placeholder="+1 617 000 0000" required>
+            <div class="field-error" id="t1_phone-error">Required.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Teammate 2 (optional) -->
+      <div class="teammate-block">
+        <div class="teammate-title">Teammate 2 <span class="optional-badge">optional</span></div>
+        <div class="teammate-row">
+          <div class="field">
+            <label for="t2_email">Email</label>
+            <input type="email" id="t2_email" name="t2_email" placeholder="teammate@harvard.edu">
+            <div class="field-error" id="t2_email-error">Must be a Harvard email if provided.</div>
+          </div>
+          <div class="field">
+            <label for="t2_phone">Phone</label>
+            <input type="tel" id="t2_phone" name="t2_phone" placeholder="+1 617 000 0000">
+          </div>
+        </div>
+      </div>
+
+      <!-- Teammate 3 (optional) -->
+      <div class="teammate-block">
+        <div class="teammate-title">Teammate 3 <span class="optional-badge">optional</span></div>
+        <div class="teammate-row">
+          <div class="field">
+            <label for="t3_email">Email</label>
+            <input type="email" id="t3_email" name="t3_email" placeholder="teammate@harvard.edu">
+            <div class="field-error" id="t3_email-error">Must be a Harvard email if provided.</div>
+          </div>
+          <div class="field">
+            <label for="t3_phone">Phone</label>
+            <input type="tel" id="t3_phone" name="t3_phone" placeholder="+1 617 000 0000">
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submit-btn">Join the Waitlist ✦</button>
+      <div class="global-error" id="global-error"></div>
+
+    </form>
+  </div>
+</div>
+
+<script>
+  const HARVARD_DOMAINS = ['@college.harvard.edu', '@harvard.edu'];
+
+  function isHarvardEmail(val) {
+    if (!val) return false;
+    const lower = val.toLowerCase().trim();
+    return HARVARD_DOMAINS.some(d => lower.endsWith(d));
+  }
+
+  function showError(fieldId, show) {
+    const input = document.getElementById(fieldId);
+    const err = document.getElementById(fieldId + '-error');
+    if (!input || !err) return;
+    if (show) {
+      input.classList.add('error');
+      err.classList.add('show');
+    } else {
+      input.classList.remove('error');
+      err.classList.remove('show');
+    }
+  }
+
+  function val(id) {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : '';
+  }
+
+  document.getElementById('signup-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    let valid = true;
+
+    // Name
+    if (!val('name')) { showError('name', true); valid = false; } else showError('name', false);
+
+    // Email
+    if (!isHarvardEmail(val('email'))) { showError('email', true); valid = false; } else showError('email', false);
+
+    // Phone
+    if (!val('phone')) { showError('phone', true); valid = false; } else showError('phone', false);
+
+    // Team name
+    if (!val('team_name')) { showError('team_name', true); valid = false; } else showError('team_name', false);
+
+    // Teammate 1 (required)
+    if (!isHarvardEmail(val('t1_email'))) { showError('t1_email', true); valid = false; } else showError('t1_email', false);
+    if (!val('t1_phone')) { showError('t1_phone', true); valid = false; } else showError('t1_phone', false);
+
+    // Teammate 2 (optional but if email provided must be Harvard)
+    const t2email = val('t2_email');
+    if (t2email && !isHarvardEmail(t2email)) { showError('t2_email', true); valid = false; } else showError('t2_email', false);
+
+    // Teammate 3 (optional but if email provided must be Harvard)
+    const t3email = val('t3_email');
+    if (t3email && !isHarvardEmail(t3email)) { showError('t3_email', true); valid = false; } else showError('t3_email', false);
+
+    if (!valid) return;
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    const payload = {
+      name: val('name'),
+      email: val('email'),
+      phone: val('phone'),
+      team_name: val('team_name'),
+      t1_email: val('t1_email'),
+      t1_phone: val('t1_phone'),
+      t2_email: val('t2_email') || null,
+      t2_phone: val('t2_phone') || null,
+      t3_email: val('t3_email') || null,
+      t3_phone: val('t3_phone') || null,
+    };
+
+    try {
+      const res = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        window.location.href = '/thankyou';
+      } else {
+        const errEl = document.getElementById('global-error');
+        errEl.textContent = data.error || 'Something went wrong. Please try again.';
+        errEl.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = 'Join the Waitlist ✦';
+      }
+    } catch (err) {
+      const errEl = document.getElementById('global-error');
+      errEl.textContent = 'Network error. Please try again.';
+      errEl.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Join the Waitlist ✦';
+    }
+  });
+</script>
+</body>
+</html>

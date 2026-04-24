@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: orbit-server
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://neondb_owner:npg_y8dGAPgVKr0z@ep-green-glitter-an853t8z.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require
+      - key: PYTHON_VERSION
+        value: 3.11.0

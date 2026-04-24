@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>You're In ✦</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #000;
+    overflow-x: hidden;
+  }
+
+  #video-bg {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 100vw;
+    min-height: 100vh;
+    width: auto; height: auto;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.70);
+    z-index: 1;
+  }
+
+  .content {
+    position: relative;
+    z-index: 2;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    text-align: center;
+  }
+
+  .logo {
+    position: fixed;
+    top: 28px; left: 32px;
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.06em;
+    text-transform: lowercase;
+    z-index: 10;
+    text-decoration: none;
+  }
+
+  .star {
+    font-size: 48px;
+    margin-bottom: 28px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.08); }
+  }
+
+  .headline {
+    font-size: clamp(28px, 6vw, 52px);
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -1px;
+    line-height: 1.15;
+    margin-bottom: 20px;
+    max-width: 560px;
+  }
+
+  .sub {
+    font-size: clamp(15px, 2.5vw, 18px);
+    color: rgba(255,255,255,0.45);
+    line-height: 1.6;
+    max-width: 420px;
+    margin-bottom: 48px;
+  }
+
+  .sub strong {
+    color: rgba(255,255,255,0.75);
+    font-weight: 600;
+  }
+
+  .back-btn {
+    display: inline-block;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 13px 28px;
+    border-radius: 999px;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+    letter-spacing: 0.01em;
+  }
+
+  .back-btn:hover {
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+  }
+
+  .footer {
+    position: fixed;
+    bottom: 20px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(255,255,255,0.15);
+    letter-spacing: 0.08em;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<video id="video-bg" autoplay muted loop playsinline>
+  <source src="/static/bg.mp4" type="video/mp4">
+</video>
+<div class="overlay"></div>
+
+<a class="logo" href="/">orbit ✦</a>
+
+<div class="content">
+  <div class="star">✦</div>
+  <h1 class="headline">you're on the waitlist.</h1>
+  <p class="sub">
+    tell your team.<br>
+    <strong>something good is about to happen.</strong>
+  </p>
+  <p class="sub" style="margin-bottom: 40px; font-size: 14px;">
+    ✦ orbit
+  </p>
+  <a class="back-btn" href="/">back to the countdown</a>
+</div>
+
+<div class="footer">orbit ✦ amazing race harvard</div>
+
+</body>
+</html>

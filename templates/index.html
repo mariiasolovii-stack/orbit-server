@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazing Race Harvard ✦</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #000;
+    overflow-x: hidden;
+  }
+
+  /* ── Video Background ── */
+  #video-bg {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 100vw;
+    min-height: 100vh;
+    width: auto; height: auto;
+    object-fit: cover;
+    z-index: 0;
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.62);
+    z-index: 1;
+  }
+
+  /* ── Main Content ── */
+  .content {
+    position: relative;
+    z-index: 2;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px 60px;
+    text-align: center;
+  }
+
+  /* ── Logo ── */
+  .logo {
+    position: fixed;
+    top: 28px; left: 32px;
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 0.06em;
+    text-transform: lowercase;
+    z-index: 10;
+  }
+
+  /* ── Countdown ── */
+  .countdown-label {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 18px;
+    font-weight: 500;
+  }
+
+  .countdown {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: center;
+    margin-bottom: 48px;
+    flex-wrap: wrap;
+  }
+
+  .countdown-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 72px;
+  }
+
+  .countdown-number {
+    font-size: clamp(48px, 10vw, 88px);
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    letter-spacing: -2px;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 40px rgba(255,255,255,0.15);
+  }
+
+  .countdown-sep {
+    font-size: clamp(40px, 8vw, 72px);
+    font-weight: 300;
+    color: rgba(255,255,255,0.25);
+    line-height: 1;
+    padding-top: 4px;
+    align-self: flex-start;
+  }
+
+  .countdown-text {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-top: 8px;
+    font-weight: 500;
+  }
+
+  /* ── Rotating Text ── */
+  .rotating-wrapper {
+    height: 36px;
+    overflow: hidden;
+    margin-bottom: 36px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 320px;
+  }
+
+  .rotating-text {
+    font-size: clamp(14px, 3vw, 18px);
+    color: rgba(255,255,255,0.55);
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    white-space: nowrap;
+    position: absolute;
+  }
+
+  .rotating-text.hidden {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  .rotating-text.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── Headline ── */
+  .headline {
+    font-size: clamp(26px, 5.5vw, 50px);
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -1px;
+    line-height: 1.15;
+    margin-bottom: 40px;
+    max-width: 640px;
+  }
+
+  .headline .blank {
+    color: rgba(255,255,255,0.3);
+    font-style: italic;
+  }
+
+  /* ── CTA Button ── */
+  .cta-btn {
+    display: inline-block;
+    background: #fff;
+    color: #0a0a0a;
+    font-size: clamp(15px, 2.5vw, 17px);
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    padding: 18px 40px;
+    border-radius: 999px;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    box-shadow: 0 4px 32px rgba(255,255,255,0.15);
+  }
+
+  .cta-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 48px rgba(255,255,255,0.25);
+    background: #f0f0f0;
+  }
+
+  .cta-btn:active {
+    transform: scale(0.98);
+  }
+
+  /* ── Footer ── */
+  .footer {
+    position: fixed;
+    bottom: 20px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(255,255,255,0.18);
+    letter-spacing: 0.08em;
+    z-index: 10;
+  }
+
+  /* ── Mobile adjustments ── */
+  @media (max-width: 520px) {
+    .countdown { gap: 6px; }
+    .countdown-unit { min-width: 56px; }
+    .countdown-sep { display: none; }
+    .cta-btn { padding: 16px 24px; font-size: 14px; }
+    .rotating-wrapper { min-width: 280px; height: 48px; }
+    .rotating-text { white-space: normal; text-align: center; max-width: 280px; }
+    .logo { top: 16px; left: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="logo">orbit ✦</div>
+
+<!-- Video Background -->
+<video id="video-bg" autoplay muted loop playsinline>
+  <source src="/static/bg.mp4" type="video/mp4">
+</video>
+
+<div class="overlay"></div>
+
+<div class="content">
+  <div class="countdown-label">race begins in</div>
+
+  <div class="countdown">
+    <div class="countdown-unit">
+      <div class="countdown-number" id="weeks">00</div>
+      <div class="countdown-text">weeks</div>
+    </div>
+    <div class="countdown-sep">:</div>
+    <div class="countdown-unit">
+      <div class="countdown-number" id="days">00</div>
+      <div class="countdown-text">days</div>
+    </div>
+    <div class="countdown-sep">:</div>
+    <div class="countdown-unit">
+      <div class="countdown-number" id="hours">00</div>
+      <div class="countdown-text">hours</div>
+    </div>
+    <div class="countdown-sep">:</div>
+    <div class="countdown-unit">
+      <div class="countdown-number" id="seconds">00</div>
+      <div class="countdown-text">seconds</div>
+    </div>
+  </div>
+
+  <div class="rotating-wrapper">
+    <div class="rotating-text visible" id="rotating-text">have you ever...</div>
+  </div>
+
+  <h1 class="headline">you have <span class="blank">___</span> left at Harvard</h1>
+
+  <a class="cta-btn" href="/signup">Enter the Amazing Race Harvard ✦</a>
+</div>
+
+<div class="footer">orbit ✦ amazing race harvard</div>
+
+<script>
+  // ── Countdown to May 28 2025 9:30am EST ──
+  // EST = UTC-5, so 9:30am EST = 14:30 UTC
+  const target = new Date('2025-05-28T14:30:00Z').getTime();
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function updateCountdown() {
+    const now = Date.now();
+    let diff = Math.max(0, target - now);
+
+    const totalSeconds = Math.floor(diff / 1000);
+    const totalMinutes = Math.floor(totalSeconds / 60);
+    const totalHours   = Math.floor(totalMinutes / 60);
+    const totalDays    = Math.floor(totalHours / 24);
+    const weeks        = Math.floor(totalDays / 7);
+    const days         = totalDays % 7;
+    const hours        = totalHours % 24;
+    const seconds      = totalSeconds % 60;
+
+    document.getElementById('weeks').textContent   = pad(weeks);
+    document.getElementById('days').textContent    = pad(days);
+    document.getElementById('hours').textContent   = pad(hours);
+    document.getElementById('seconds').textContent = pad(seconds);
+  }
+
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+
+  // ── Rotating Text ──
+  const phrases = [
+    'swum in the Charles at midnight',
+    'watched sunrise from a rooftop',
+    'gotten lost in Boston with no plan',
+    'had dinner with someone you just met',
+    'made a friend you never expected',
+    'done something worth telling at your reunion'
+  ];
+
+  let idx = 0;
+  const el = document.getElementById('rotating-text');
+
+  function rotateText() {
+    el.classList.remove('visible');
+    el.classList.add('hidden');
+    setTimeout(() => {
+      idx = (idx + 1) % phrases.length;
+      el.textContent = phrases[idx];
+      el.classList.remove('hidden');
+      el.classList.add('visible');
+    }, 500);
+  }
+
+  setInterval(rotateText, 3000);
+</script>
+</body>
+</html>
