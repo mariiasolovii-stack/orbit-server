@@ -9,4 +9,3 @@ dist/
 build/
 .DS_Store
 app_original_backup.py
-static/bg.mp4

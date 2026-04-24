@@ -1,9 +1,7 @@
 import os
 import re
-import smtplib
 import logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import requests as http_requests
 from datetime import datetime
 
 import psycopg2
@@ -51,20 +49,17 @@ def init_db():
     conn.close()
     logging.info("Database initialized.")
 
-# Email
-SMTP_HOST     = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
-SMTP_PORT     = int(os.environ.get('SMTP_PORT', '587'))
-SMTP_USER     = os.environ.get('SMTP_USER', '')
-SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
-FROM_EMAIL    = os.environ.get('FROM_EMAIL', SMTP_USER)
-FROM_NAME     = os.environ.get('FROM_NAME', 'orbit')
+# ── Email via Resend ──
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+FROM_EMAIL     = os.environ.get('FROM_EMAIL', 'play@joinorbit.one')
+FROM_NAME      = os.environ.get('FROM_NAME', 'orbit ✦')
 
 def send_confirmation_email(to_email, name, team_name):
-    if not SMTP_USER or not SMTP_PASSWORD:
-        logging.warning("SMTP credentials not configured - skipping email.")
+    if not RESEND_API_KEY:
+        logging.warning("RESEND_API_KEY not configured — skipping confirmation email.")
         return
 
-    subject = "you're on the waitlist. your side quest drops soon."
+    subject = "you're on the waitlist. your side quest drops soon. ✦"
 
     html_body = """<!DOCTYPE html>
 <html>
@@ -90,31 +85,39 @@ p{font-size:16px;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:12px}
 </body>
 </html>"""
 
-    text_body = f"""orbit
+    text_body = f"""orbit ✦
 
 you're on the waitlist.
 
-hey {name} - your team "{team_name}" is locked in.
+hey {name} — your team "{team_name}" is locked in.
 your side quest drops soon.
 stay close.
 
-orbit - amazing race harvard
+✦ orbit · amazing race harvard
 """
 
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = subject
-    msg['From']    = f'{FROM_NAME} <{FROM_EMAIL}>'
-    msg['To']      = to_email
-    msg.attach(MIMEText(text_body, 'plain'))
-    msg.attach(MIMEText(html_body, 'html'))
+    payload = {
+        "from": f"{FROM_NAME} <{FROM_EMAIL}>",
+        "to": [to_email],
+        "subject": subject,
+        "html": html_body,
+        "text": text_body,
+    }
 
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(FROM_EMAIL, [to_email], msg.as_string())
-        logging.info(f"Confirmation email sent to {to_email}")
+        resp = http_requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=10,
+        )
+        if resp.status_code in (200, 201):
+            logging.info(f"Confirmation email sent to {to_email} via Resend (id={resp.json().get('id')})")
+        else:
+            logging.error(f"Resend error {resp.status_code}: {resp.text}")
     except Exception as e:
         logging.error(f"Failed to send email to {to_email}: {e}")
 
