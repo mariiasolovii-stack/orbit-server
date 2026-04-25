@@ -99,15 +99,22 @@
       transform: translateY(-8px);
     }
 
+    /* 'yet?' animates together with the rotating phrase */
     .phrase-static {
       font-family: 'Cormorant Garamond', Georgia, serif;
       font-style: italic;
       font-size: clamp(17px, 2.4vw, 22px);
       font-weight: 400;
-      color: rgba(255,255,255,0.38);
+      color: rgba(255, 230, 180, 0.90);
       letter-spacing: 0.01em;
       white-space: nowrap;
       margin-left: 5px;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .phrase-static.out {
+      opacity: 0;
+      transform: translateY(-8px);
     }
 
     /* ─── "you have" ─── */
@@ -210,6 +217,16 @@
       box-shadow: 0 6px 40px rgba(0,0,0,0.50);
     }
 
+    .cta-tagline {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: clamp(16px, 2.2vw, 22px);
+      font-weight: 400;
+      color: rgba(255,255,255,0.75);
+      letter-spacing: 0.02em;
+      text-shadow: 0 2px 16px rgba(0,0,0,0.60);
+    }
+
     .cta-hint {
       font-size: clamp(10px, 1.1vw, 12px);
       font-weight: 400;
@@ -260,7 +277,7 @@
     <!-- Rotating phrase -->
     <div class="phrase-row">
       <span class="phrase-rotating" id="phrase">swam in the Charles river</span>
-      <span class="phrase-static">&nbsp;yet?</span>
+      <span class="phrase-static" id="phrase-yet">&nbsp;yet?</span>
     </div>
 
     <!-- you have -->
@@ -294,6 +311,7 @@
 
     <!-- CTA -->
     <div class="cta-group">
+      <span class="cta-tagline">the adventure challenge starts here.</span>
       <a href="/signup" class="cta-btn">Join the Amazing Race Harvard Waitlist ✦</a>
       <span class="cta-hint">Harvard students only &nbsp;·&nbsp; limited spots</span>
     </div>
@@ -361,13 +379,18 @@
 
     let phraseIdx = 0;
     const phraseEl = document.getElementById('phrase');
+    const yetEl    = document.getElementById('phrase-yet');
 
     function rotatePhrase() {
+      // Fade both out together
       phraseEl.classList.add('out');
+      yetEl.classList.add('out');
       setTimeout(() => {
         phraseIdx = (phraseIdx + 1) % PHRASES.length;
         phraseEl.textContent = PHRASES[phraseIdx];
+        // Fade both back in together
         phraseEl.classList.remove('out');
+        yetEl.classList.remove('out');
       }, 360);
     }
 
