@@ -250,27 +250,6 @@
     </video>
   </div>
 
-  <!-- Tap-to-play overlay (shown only if autoplay blocked) -->
-  <div id="tap-overlay" style="
-    display:none;
-    position:fixed;inset:0;z-index:50;
-    cursor:pointer;
-    align-items:center;justify-content:center;
-  ">
-    <div style="
-      background:rgba(255,255,255,0.10);
-      border:1px solid rgba(255,255,255,0.25);
-      border-radius:100px;
-      padding:14px 28px;
-      font-family:'Inter',sans-serif;
-      font-size:13px;
-      font-weight:500;
-      letter-spacing:0.14em;
-      text-transform:uppercase;
-      color:rgba(255,255,255,0.80);
-      backdrop-filter:blur(8px);
-    ">tap anywhere to play ✦</div>
-  </div>
 
   <!-- Brand -->
   <div class="brand">orbit ✦</div>
@@ -325,47 +304,29 @@
   <div class="footer">orbit ✦ amazing race harvard</div>
 
   <script>
-    // ── Robust video autoplay (handles iOS Safari + Chrome autoplay policy) ──
+    // ── Silent autoplay — no prompts, no overlays ──
     const vid = document.getElementById('bg-video');
-    const tapOverlay = document.getElementById('tap-overlay');
 
-    function startVideo() {
+    function tryPlay() {
       vid.muted = true;
       vid.volume = 0;
-      const p = vid.play();
-      if (p !== undefined) {
-        p.then(() => {
-          tapOverlay.style.display = 'none';
-        }).catch(() => {
-          // Autoplay blocked — show tap overlay
-          tapOverlay.style.display = 'flex';
-        });
-      }
+      vid.play().catch(() => {});
     }
 
-    function playOnInteraction() {
-      vid.muted = true;
-      vid.volume = 0;
-      vid.play().then(() => {
-        tapOverlay.style.display = 'none';
-      }).catch(() => {});
+    // Try immediately on load
+    tryPlay();
+
+    // Retry after short delays (iOS Safari sometimes needs a tick)
+    setTimeout(tryPlay, 300);
+    setTimeout(tryPlay, 800);
+
+    // Silently start on ANY first user interaction — no visible prompt
+    const events = ['touchstart','touchend','pointerdown','click','scroll','keydown'];
+    function onFirstInteraction() {
+      tryPlay();
+      events.forEach(e => document.removeEventListener(e, onFirstInteraction));
     }
-
-    // Try immediately
-    startVideo();
-
-    // Also try on any user interaction (tap, click, scroll, keydown)
-    ['click','touchstart','touchend','pointerdown','keydown','scroll'].forEach(evt => {
-      document.addEventListener(evt, playOnInteraction, { once: true, passive: true });
-    });
-
-    // Tap overlay click
-    tapOverlay.addEventListener('click', playOnInteraction);
-    tapOverlay.addEventListener('touchstart', playOnInteraction, { passive: true });
-
-    // iOS Safari: try again after a short delay (sometimes needs a tick)
-    setTimeout(startVideo, 500);
-    setTimeout(startVideo, 1500);
+    events.forEach(e => document.addEventListener(e, onFirstInteraction, { passive: true }));
 
     // ── Countdown to May 28 2026 9:30am EDT (UTC-4) = 13:30 UTC ──
     const TARGET = new Date('2026-05-28T13:30:00Z').getTime();
