@@ -33,10 +33,13 @@ def init_db():
             email           TEXT NOT NULL,
             phone           TEXT NOT NULL,
             team_name       TEXT NOT NULL,
+            t1_name         TEXT,
             t1_email        TEXT NOT NULL,
-            t1_phone        TEXT NOT NULL,
+            t1_phone        TEXT,
+            t2_name         TEXT,
             t2_email        TEXT,
             t2_phone        TEXT,
+            t3_name         TEXT,
             t3_email        TEXT,
             t3_phone        TEXT,
             ip_address      TEXT,
@@ -44,6 +47,17 @@ def init_db():
             confirmed       BOOLEAN NOT NULL DEFAULT FALSE
         )
     """)
+    # Add name columns if they don't exist yet (for existing tables)
+    for col in ['t1_name', 't2_name', 't3_name']:
+        try:
+            cur.execute(f"ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS {col} TEXT")
+        except Exception:
+            pass
+    # Make t1_phone optional if it was NOT NULL
+    try:
+        cur.execute("ALTER TABLE waitlist ALTER COLUMN t1_phone DROP NOT NULL")
+    except Exception:
+        pass
     conn.commit()
     cur.close()
     conn.close()
@@ -151,10 +165,13 @@ def api_signup():
     email     = (data.get('email') or '').strip()
     phone     = (data.get('phone') or '').strip()
     team_name = (data.get('team_name') or '').strip()
+    t1_name   = (data.get('t1_name') or '').strip() or None
     t1_email  = (data.get('t1_email') or '').strip()
-    t1_phone  = (data.get('t1_phone') or '').strip()
+    t1_phone  = (data.get('t1_phone') or '').strip() or None
+    t2_name   = (data.get('t2_name') or '').strip() or None
     t2_email  = (data.get('t2_email') or '').strip() or None
     t2_phone  = (data.get('t2_phone') or '').strip() or None
+    t3_name   = (data.get('t3_name') or '').strip() or None
     t3_email  = (data.get('t3_email') or '').strip() or None
     t3_phone  = (data.get('t3_phone') or '').strip() or None
 
@@ -162,14 +179,14 @@ def api_signup():
         return jsonify({'success': False, 'error': 'Name is required.'}), 400
     if not is_harvard_email(email):
         return jsonify({'success': False, 'error': 'Must use a @college.harvard.edu or @harvard.edu email.'}), 400
-    if not phone:
-        return jsonify({'success': False, 'error': 'Phone number is required.'}), 400
+    # Accept any phone format — just need at least 10 digits
+    phone_digits = re.sub(r'\D', '', phone)
+    if len(phone_digits) < 10:
+        return jsonify({'success': False, 'error': 'Please enter a valid phone number (at least 10 digits).'}), 400
     if not team_name:
         return jsonify({'success': False, 'error': 'Team name is required.'}), 400
     if not is_harvard_email(t1_email):
         return jsonify({'success': False, 'error': 'Teammate 1 must have a Harvard email.'}), 400
-    if not t1_phone:
-        return jsonify({'success': False, 'error': 'Teammate 1 phone is required.'}), 400
     if t2_email and not is_harvard_email(t2_email):
         return jsonify({'success': False, 'error': 'Teammate 2 must have a Harvard email if provided.'}), 400
     if t3_email and not is_harvard_email(t3_email):
@@ -194,16 +211,16 @@ def api_signup():
         cur.execute("""
             INSERT INTO waitlist
               (name, email, phone, team_name,
-               t1_email, t1_phone,
-               t2_email, t2_phone,
-               t3_email, t3_phone,
+               t1_name, t1_email, t1_phone,
+               t2_name, t2_email, t2_phone,
+               t3_name, t3_email, t3_phone,
                ip_address, user_agent)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             name, email.lower(), phone, team_name,
-            t1_email.lower(), t1_phone,
-            t2_email.lower() if t2_email else None, t2_phone,
-            t3_email.lower() if t3_email else None, t3_phone,
+            t1_name, t1_email.lower(), t1_phone,
+            t2_name, t2_email.lower() if t2_email else None, t2_phone,
+            t3_name, t3_email.lower() if t3_email else None, t3_phone,
             ip_address, user_agent
         ))
         conn.commit()

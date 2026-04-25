@@ -79,7 +79,18 @@
   .card-sub {
     font-size: 14px;
     color: rgba(255,255,255,0.4);
-    margin-bottom: 36px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .hear-back-box {
+    margin-bottom: 32px;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 12px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.60);
     line-height: 1.5;
   }
 
@@ -244,7 +255,7 @@
 </head>
 <body>
 
-<video id="video-bg" autoplay muted loop playsinline>
+<video id="video-bg" autoplay muted loop playsinline webkit-playsinline>
   <source src="/static/bg.mp4" type="video/mp4">
 </video>
 <div class="overlay"></div>
@@ -255,16 +266,7 @@
   <div class="card">
     <h1 class="card-title">Enter the Race ✦</h1>
     <p class="card-sub">Secure your spot on the waitlist. One team, up to four people. Harvard emails only.</p>
-    <div style="
-      margin-bottom: 28px;
-      padding: 14px 18px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 12px;
-      font-size: 13px;
-      color: rgba(255,255,255,0.60);
-      line-height: 1.5;
-    ">
+    <div class="hear-back-box">
       ✦ &nbsp;you'll hear back by <strong style="color:rgba(255,255,255,0.90);">Thursday, April 30</strong>
     </div>
 
@@ -287,7 +289,7 @@
 
       <div class="field">
         <label for="phone">Phone Number</label>
-        <input type="tel" id="phone" name="phone" placeholder="+1 617 000 0000" required>
+        <input type="tel" id="phone" name="phone" placeholder="6170000000 or +16170000000" required>
         <div class="field-error" id="phone-error">Please enter your phone number.</div>
       </div>
 
@@ -303,15 +305,20 @@
       <!-- Teammate 1 (required) -->
       <div class="teammate-block">
         <div class="teammate-title">Teammate 1</div>
+        <div class="field">
+          <label for="t1_name">Full Name</label>
+          <input type="text" id="t1_name" name="t1_name" placeholder="Teammate's full name" required>
+          <div class="field-error" id="t1_name-error">Please enter their name.</div>
+        </div>
         <div class="teammate-row">
           <div class="field">
             <label for="t1_email">Email</label>
-            <input type="email" id="t1_email" name="t1_email" placeholder="teammate@harvard.edu" required>
+            <input type="email" id="t1_email" name="t1_email" placeholder="teammate@college.harvard.edu" required>
             <div class="field-error" id="t1_email-error">Must be a Harvard email.</div>
           </div>
           <div class="field">
             <label for="t1_phone">Phone</label>
-            <input type="tel" id="t1_phone" name="t1_phone" placeholder="+1 617 000 0000" required>
+            <input type="tel" id="t1_phone" name="t1_phone" placeholder="6170000000">
             <div class="field-error" id="t1_phone-error">Required.</div>
           </div>
         </div>
@@ -320,15 +327,19 @@
       <!-- Teammate 2 (optional) -->
       <div class="teammate-block">
         <div class="teammate-title">Teammate 2 <span class="optional-badge">optional</span></div>
+        <div class="field">
+          <label for="t2_name">Full Name</label>
+          <input type="text" id="t2_name" name="t2_name" placeholder="Teammate's full name">
+        </div>
         <div class="teammate-row">
           <div class="field">
             <label for="t2_email">Email</label>
-            <input type="email" id="t2_email" name="t2_email" placeholder="teammate@harvard.edu">
+            <input type="email" id="t2_email" name="t2_email" placeholder="teammate@college.harvard.edu">
             <div class="field-error" id="t2_email-error">Must be a Harvard email if provided.</div>
           </div>
           <div class="field">
             <label for="t2_phone">Phone</label>
-            <input type="tel" id="t2_phone" name="t2_phone" placeholder="+1 617 000 0000">
+            <input type="tel" id="t2_phone" name="t2_phone" placeholder="6170000000">
           </div>
         </div>
       </div>
@@ -336,15 +347,19 @@
       <!-- Teammate 3 (optional) -->
       <div class="teammate-block">
         <div class="teammate-title">Teammate 3 <span class="optional-badge">optional</span></div>
+        <div class="field">
+          <label for="t3_name">Full Name</label>
+          <input type="text" id="t3_name" name="t3_name" placeholder="Teammate's full name">
+        </div>
         <div class="teammate-row">
           <div class="field">
             <label for="t3_email">Email</label>
-            <input type="email" id="t3_email" name="t3_email" placeholder="teammate@harvard.edu">
+            <input type="email" id="t3_email" name="t3_email" placeholder="teammate@college.harvard.edu">
             <div class="field-error" id="t3_email-error">Must be a Harvard email if provided.</div>
           </div>
           <div class="field">
             <label for="t3_phone">Phone</label>
-            <input type="tel" id="t3_phone" name="t3_phone" placeholder="+1 617 000 0000">
+            <input type="tel" id="t3_phone" name="t3_phone" placeholder="6170000000">
           </div>
         </div>
       </div>
@@ -363,6 +378,14 @@
     if (!val) return false;
     const lower = val.toLowerCase().trim();
     return HARVARD_DOMAINS.some(d => lower.endsWith(d));
+  }
+
+  // Accept any phone format: 10 digits, +1xxxxxxxxxx, (xxx) xxx-xxxx, etc.
+  // Just strip non-digits and check there are at least 10 digits
+  function isValidPhone(val) {
+    if (!val) return false;
+    const digits = val.replace(/\D/g, '');
+    return digits.length >= 10;
   }
 
   function showError(fieldId, show) {
@@ -393,15 +416,16 @@
     // Email
     if (!isHarvardEmail(val('email'))) { showError('email', true); valid = false; } else showError('email', false);
 
-    // Phone
-    if (!val('phone')) { showError('phone', true); valid = false; } else showError('phone', false);
+    // Phone (flexible)
+    if (!isValidPhone(val('phone'))) { showError('phone', true); valid = false; } else showError('phone', false);
 
     // Team name
     if (!val('team_name')) { showError('team_name', true); valid = false; } else showError('team_name', false);
 
     // Teammate 1 (required)
+    if (!val('t1_name')) { showError('t1_name', true); valid = false; } else showError('t1_name', false);
     if (!isHarvardEmail(val('t1_email'))) { showError('t1_email', true); valid = false; } else showError('t1_email', false);
-    if (!val('t1_phone')) { showError('t1_phone', true); valid = false; } else showError('t1_phone', false);
+    // t1 phone optional — no validation required
 
     // Teammate 2 (optional but if email provided must be Harvard)
     const t2email = val('t2_email');
@@ -422,10 +446,13 @@
       email: val('email'),
       phone: val('phone'),
       team_name: val('team_name'),
+      t1_name: val('t1_name'),
       t1_email: val('t1_email'),
-      t1_phone: val('t1_phone'),
+      t1_phone: val('t1_phone') || null,
+      t2_name: val('t2_name') || null,
       t2_email: val('t2_email') || null,
       t2_phone: val('t2_phone') || null,
+      t3_name: val('t3_name') || null,
       t3_email: val('t3_email') || null,
       t3_phone: val('t3_phone') || null,
     };
@@ -454,6 +481,15 @@
       btn.textContent = 'Join the Waitlist ✦';
     }
   });
+
+  // Silent autoplay for background video
+  const vid = document.getElementById('video-bg');
+  function tryPlay() { vid.muted = true; vid.play().catch(() => {}); }
+  tryPlay();
+  setTimeout(tryPlay, 500);
+  ['touchstart','pointerdown','click'].forEach(e =>
+    document.addEventListener(e, tryPlay, { once: true, passive: true })
+  );
 </script>
 </body>
 </html>
