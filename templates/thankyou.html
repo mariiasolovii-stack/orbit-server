@@ -3,15 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>You're In ✦</title>
+<title>You're In ✦ Orbit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   html, body {
     width: 100%; height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: #000;
-    overflow-x: hidden;
+    overflow: hidden;
   }
 
   #video-bg {
@@ -28,10 +31,25 @@
   .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.70);
+    background: rgba(0, 0, 0, 0.72);
     z-index: 1;
   }
 
+  /* Top logo */
+  .logo {
+    position: fixed;
+    top: 28px; left: 32px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    z-index: 10;
+    text-decoration: none;
+  }
+
+  /* Main content */
   .content {
     position: relative;
     z-index: 2;
@@ -40,123 +58,134 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 24px;
+    padding: 80px 32px 80px;
     text-align: center;
+    gap: 0;
   }
 
-  .logo {
-    position: fixed;
-    top: 28px; left: 32px;
-    font-size: 18px;
-    font-weight: 700;
-    color: rgba(255,255,255,0.7);
-    letter-spacing: 0.06em;
-    text-transform: lowercase;
-    z-index: 10;
-    text-decoration: none;
-  }
-
-  .star {
-    font-size: 48px;
-    margin-bottom: 28px;
-    animation: pulse 2s ease-in-out infinite;
+  .star-mark {
+    font-size: 32px;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 32px;
+    animation: pulse 2.5s ease-in-out infinite;
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.08); }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
 
   .headline {
-    font-size: clamp(28px, 6vw, 52px);
-    font-weight: 800;
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(32px, 7vw, 58px);
+    font-weight: 900;
     color: #fff;
-    letter-spacing: -1px;
-    line-height: 1.15;
-    margin-bottom: 20px;
-    max-width: 560px;
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+    margin-bottom: 24px;
   }
 
-  .sub {
-    font-size: clamp(15px, 2.5vw, 18px);
-    color: rgba(255,255,255,0.45);
-    line-height: 1.6;
-    max-width: 420px;
-    margin-bottom: 48px;
-  }
-
-  .sub strong {
+  .sub-serif {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(20px, 4vw, 28px);
     color: rgba(255,255,255,0.75);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .sub-serif strong {
+    font-style: italic;
+    font-weight: 600;
+    color: rgba(255,255,255,0.95);
+  }
+
+  .divider {
+    width: 40px;
+    height: 1px;
+    background: rgba(255,255,255,0.2);
+    margin: 28px auto;
+  }
+
+  .spam-note {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: rgba(255,255,255,0.28);
+    line-height: 1.7;
+    max-width: 320px;
+    letter-spacing: 0.01em;
+    margin-bottom: 36px;
+  }
+
+  .spam-note strong {
+    color: rgba(255,255,255,0.45);
     font-weight: 600;
   }
 
   .back-btn {
     display: inline-block;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.7);
-    font-size: 14px;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.75);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
     font-weight: 600;
-    padding: 13px 28px;
+    padding: 13px 32px;
     border-radius: 999px;
     text-decoration: none;
-    transition: background 0.2s, color 0.2s;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
   }
 
   .back-btn:hover {
-    background: rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.18);
     color: #fff;
+    border-color: rgba(255,255,255,0.35);
   }
 
-  .spam-note {
-    font-size: 13px;
-    color: rgba(255,255,255,0.30);
-    line-height: 1.6;
-    max-width: 360px;
-    margin-bottom: 28px;
-  }
-
-  .spam-note strong {
-    color: rgba(255,255,255,0.50);
-  }
-
+  /* Bottom footer */
   .footer {
     position: fixed;
     bottom: 20px;
     left: 0; right: 0;
     text-align: center;
-    font-size: 11px;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
     color: rgba(255,255,255,0.15);
-    letter-spacing: 0.08em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     z-index: 10;
   }
 </style>
 </head>
 <body>
 
-<video id="video-bg" autoplay muted loop playsinline>
+<video id="video-bg" autoplay muted loop playsinline webkit-playsinline>
   <source src="/static/bg.mp4" type="video/mp4">
 </video>
 <div class="overlay"></div>
 
-<a class="logo" href="/">orbit ✦</a>
+<a class="logo" href="/">ORBIT ✦ AMAZING RACE HARVARD</a>
 
 <div class="content">
-  <div class="star">✦</div>
+  <div class="star-mark">✦</div>
   <h1 class="headline">you're on the waitlist.</h1>
-  <p class="sub">
-    tell your team.<br>
-    <strong>something good is about to happen.</strong>
-  </p>
-  <p class="sub" style="margin-bottom: 40px; font-size: 14px;">
-    ✦ orbit
-  </p>
-  <p class="spam-note">we sent you a confirmation email — if you don't see it, check your spam folder and mark it as <strong>not spam</strong> so you don't miss updates.</p>
+  <p class="sub-serif">tell your team.<br><strong>something good is about to happen.</strong></p>
+  <div class="divider"></div>
+  <p class="spam-note">we sent you a confirmation email — if you don't see it, check your <strong>spam folder</strong> and mark it as not spam so you don't miss updates.</p>
   <a class="back-btn" href="/">back to the countdown</a>
 </div>
 
-<div class="footer">orbit ✦ amazing race harvard</div>
+<div class="footer">ORBIT ✦ AMAZING RACE HARVARD</div>
 
+<script>
+  // Autoplay video — silent fallback for iOS
+  const vid = document.getElementById('video-bg');
+  vid.play().catch(() => {
+    document.addEventListener('touchstart', () => vid.play(), { once: true });
+    document.addEventListener('click', () => vid.play(), { once: true });
+  });
+</script>
 </body>
 </html>
