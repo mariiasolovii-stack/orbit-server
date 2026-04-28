@@ -138,33 +138,44 @@
 
   .scroll-hint {
     position: absolute;
-    bottom: 40px;
+    bottom: 36px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 2;
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--very-muted);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    cursor: pointer;
   }
 
-  .scroll-hint::after {
-    content: '';
+  .scroll-hint-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.28);
+  }
+
+  .scroll-arrows {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .scroll-arrows svg {
     display: block;
-    width: 1px;
-    height: 40px;
-    background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
-    animation: scrollLine 1.8s ease-in-out infinite;
   }
 
-  @keyframes scrollLine {
-    0% { opacity: 0; transform: scaleY(0); transform-origin: top; }
-    50% { opacity: 1; transform: scaleY(1); transform-origin: top; }
-    100% { opacity: 0; transform: scaleY(1); transform-origin: bottom; }
+  .scroll-arrows .arr1 { animation: arrowFade 1.6s ease-in-out infinite 0s; }
+  .scroll-arrows .arr2 { animation: arrowFade 1.6s ease-in-out infinite 0.2s; }
+  .scroll-arrows .arr3 { animation: arrowFade 1.6s ease-in-out infinite 0.4s; }
+
+  @keyframes arrowFade {
+    0%   { opacity: 0.12; transform: translateY(-4px); }
+    50%  { opacity: 0.7;  transform: translateY(0px); }
+    100% { opacity: 0.12; transform: translateY(4px); }
   }
 
   /* ── Scroll sections ── */
@@ -530,7 +541,20 @@
     <h1 class="hero-title">what is orbit?</h1>
     <div class="hero-star">✦</div>
   </div>
-  <div class="scroll-hint">scroll</div>
+  <div class="scroll-hint" onclick="document.querySelector('.section').scrollIntoView({behavior:'smooth'})">
+    <span class="scroll-hint-label">scroll</span>
+    <div class="scroll-arrows">
+      <svg class="arr1" width="24" height="14" viewBox="0 0 24 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="2,2 12,11 22,2" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <svg class="arr2" width="24" height="14" viewBox="0 0 24 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="2,2 12,11 22,2" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <svg class="arr3" width="24" height="14" viewBox="0 0 24 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="2,2 12,11 22,2" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </div>
 </section>
 
 <!-- Section 1: Three definitions -->
