@@ -46,33 +46,42 @@
         linear-gradient(to bottom, rgba(0,0,0,0.60) 0%, rgba(0,0,0,0.22) 40%, rgba(0,0,0,0.22) 60%, rgba(0,0,0,0.72) 100%);
     }
 
-    /* ─── Brand ─── */
-    .brand {
+    /* ─── Navigation ─── */
+    header {
       position: fixed;
-      top: 28px; left: 32px;
-      z-index: 20;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.20em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.50);
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 32px;
+      pointer-events: none; /* Allow clicks through to video if needed, but children will override */
     }
 
-    /* ─── Join team nav button ─── */
-    .nav-join {
-      position: fixed;
-      top: 28px; right: 32px;
-      z-index: 20;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.20em;
+    .nav-link {
+      pointer-events: auto;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.50);
+      color: rgba(255,255,255,0.45);
       text-decoration: none;
-      transition: color 0.2s;
+      transition: color 0.2s, opacity 0.2s;
+      white-space: nowrap;
     }
-    .nav-join:hover {
-      color: rgba(255,255,255,0.85);
+
+    .nav-link:hover {
+      color: rgba(255,255,255,0.9);
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 20px 20px;
+      }
+      .nav-link {
+        font-size: 9px;
+        letter-spacing: 0.12em;
+      }
     }
 
     /* ─── Stage ─── */
@@ -272,7 +281,6 @@
 
     /* ─── Mobile ─── */
     @media (max-width: 560px) {
-      .brand { top: 18px; left: 18px; font-size: 10px; }
       .cd-sep { display: none; }
       .countdown { gap: 10px; }
       .phrase-row { margin-bottom: 32px; height: auto; }
@@ -290,9 +298,11 @@
   </div>
 
 
-  <!-- Brand -->
-  <a class="brand" href="/about" style="text-decoration:none;color:rgba(255,255,255,0.50);transition:color 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.85)'" onmouseout="this.style.color='rgba(255,255,255,0.50)'">what is orbit ✦?</a>
-  <a class="nav-join" href="/join">join the orbit team ✦</a>
+  <!-- Navigation -->
+  <header>
+    <a class="nav-link" href="/about">what is orbit ✦?</a>
+    <a class="nav-link" href="/join">join the orbit team ✦</a>
+  </header>
 
   <!-- Main -->
   <main class="stage">
