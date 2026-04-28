@@ -193,6 +193,10 @@ def signup():
 def thankyou():
     return render_template('thankyou.html')
 
+@app.route('/layout-preview')
+def layout_preview():
+    return render_template('layout_preview.html')
+
 @app.route('/about')
 def about():
     return render_template('about.html')
