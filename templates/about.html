@@ -39,7 +39,7 @@
     background: linear-gradient(to bottom, rgba(8,8,8,0.85) 0%, transparent 100%);
   }
 
-  .nav-logo {
+  .nav-logo, .nav-cta {
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.14em;
@@ -47,26 +47,11 @@
     color: rgba(255,255,255,0.4);
     text-decoration: none;
     transition: color 0.2s;
+    border: none;
+    padding: 0;
+    background: none;
   }
-  .nav-logo:hover { color: rgba(255,255,255,0.8); }
-
-  .nav-cta {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.55);
-    text-decoration: none;
-    border: 1px solid rgba(255,255,255,0.18);
-    padding: 8px 18px;
-    border-radius: 999px;
-    transition: all 0.2s;
-  }
-  .nav-cta:hover {
-    color: #fff;
-    border-color: rgba(255,255,255,0.5);
-    background: rgba(255,255,255,0.06);
-  }
+  .nav-logo:hover, .nav-cta:hover { color: rgba(255,255,255,0.8); }
 
   /* ════════════════════════════════
      HERO
@@ -140,20 +125,15 @@
     opacity: 0;
     animation: fadeUp 0.8s ease forwards 0.4s;
     line-height: 1.15;
+    background-image: linear-gradient(transparent 48%, rgba(255,255,255,0.55) 48%, rgba(255,255,255,0.55) 52%, transparent 52%);
+    background-size: 0% 100%;
+    background-repeat: no-repeat;
+    background-position: left center;
+    animation: fadeUp 0.8s ease forwards 0.4s, strikeThroughNew 0.55s ease forwards 1.2s;
   }
 
-  .hero-cross::after {
-    content: '';
-    position: absolute;
-    left: 0; top: 50%;
-    height: 2px;
-    background: rgba(255,255,255,0.55);
-    width: 0;
-    animation: strikeThrough 0.55s ease forwards 1.2s;
-  }
-
-  @keyframes strikeThrough {
-    to { width: 100%; }
+  @keyframes strikeThroughNew {
+    to { background-size: 100% 100%; }
   }
 
   /* Main headline */
@@ -219,8 +199,9 @@
   .scroll-hint {
     position: absolute;
     bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0; right: 0;
+    margin: 0 auto;
+    width: fit-content;
     z-index: 2;
     display: flex;
     flex-direction: column;
