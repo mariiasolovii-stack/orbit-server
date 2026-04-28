@@ -27,7 +27,7 @@
     overflow-x: hidden;
   }
 
-  /* ── Fixed nav ── */
+  /* ── Nav ── */
   nav {
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -36,7 +36,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 24px 32px;
-    background: linear-gradient(to bottom, rgba(8,8,8,0.85) 0%, transparent 100%);
+    background: linear-gradient(to bottom, rgba(8,8,8,0.9) 0%, transparent 100%);
   }
 
   .nav-logo {
@@ -44,11 +44,11 @@
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.55);
+    color: rgba(255,255,255,0.45);
     text-decoration: none;
     transition: color 0.2s;
   }
-  .nav-logo:hover { color: rgba(255,255,255,0.9); }
+  .nav-logo:hover { color: rgba(255,255,255,0.85); }
 
   .nav-cta {
     font-size: 11px;
@@ -68,7 +68,7 @@
     background: rgba(255,255,255,0.06);
   }
 
-  /* ── Hero section ── */
+  /* ── Hero ── */
   .hero {
     position: relative;
     height: 100vh;
@@ -84,18 +84,20 @@
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    min-width: 100%;
-    min-height: 100%;
+    min-width: 100%; min-height: 100%;
     width: auto; height: auto;
     object-fit: cover;
     z-index: 0;
-    opacity: 0.5;
+    opacity: 0.45;
   }
 
   .hero-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to bottom, rgba(8,8,8,0.5) 0%, rgba(8,8,8,0.7) 60%, rgba(8,8,8,1) 100%);
+    background: linear-gradient(to bottom,
+      rgba(8,8,8,0.45) 0%,
+      rgba(8,8,8,0.55) 55%,
+      rgba(8,8,8,1) 100%);
     z-index: 1;
   }
 
@@ -103,6 +105,7 @@
     position: relative;
     z-index: 2;
     padding: 0 24px;
+    max-width: 720px;
   }
 
   .hero-eyebrow {
@@ -111,31 +114,43 @@
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
 
   .hero-title {
     font-family: 'Cormorant Garamond', serif;
     font-style: italic;
-    font-size: clamp(52px, 10vw, 96px);
+    font-size: clamp(56px, 11vw, 104px);
     font-weight: 400;
     color: var(--white);
-    line-height: 1.05;
+    line-height: 1.0;
     letter-spacing: -1px;
-    margin-bottom: 16px;
+    margin-bottom: 24px;
   }
 
-  .hero-star {
-    font-size: 28px;
-    color: rgba(255,255,255,0.6);
-    animation: pulse 2.5s ease-in-out infinite;
+  .hero-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(15px, 2vw, 18px);
+    font-weight: 500;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.7;
+    max-width: 480px;
+    margin: 0 auto 32px;
   }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.35; }
+  .hero-launch {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 8px 18px;
+    border-radius: 999px;
   }
 
+  /* Scroll arrow */
   .scroll-hint {
     position: absolute;
     bottom: 36px;
@@ -154,18 +169,7 @@
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.28);
-  }
-
-  .scroll-arrows {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0;
-  }
-
-  .scroll-arrows svg {
-    display: block;
+    color: rgba(255,255,255,0.22);
   }
 
   .scroll-arrows .arr1 { animation: arrowFade 1.6s ease-in-out infinite 0s; }
@@ -173,57 +177,27 @@
   .scroll-arrows .arr3 { animation: arrowFade 1.6s ease-in-out infinite 0.4s; }
 
   @keyframes arrowFade {
-    0%   { opacity: 0.12; transform: translateY(-4px); }
-    50%  { opacity: 0.7;  transform: translateY(0px); }
-    100% { opacity: 0.12; transform: translateY(4px); }
+    0%   { opacity: 0.1; transform: translateY(-3px); }
+    50%  { opacity: 0.6; transform: translateY(0px); }
+    100% { opacity: 0.1; transform: translateY(3px); }
   }
 
-  /* ── Scroll sections ── */
-  .section {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 100px 32px;
-  }
-
-  .section-full {
-    width: 100%;
-    padding: 100px 32px;
-  }
-
-  /* Fade-in animation */
+  /* ── Reveal ── */
   .reveal {
     opacity: 0;
-    transform: translateY(32px);
-    transition: opacity 0.8s ease, transform 0.8s ease;
+    transform: translateY(28px);
+    transition: opacity 0.75s ease, transform 0.75s ease;
   }
-  .reveal.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  .reveal-delay-1 { transition-delay: 0.1s; }
-  .reveal-delay-2 { transition-delay: 0.2s; }
-  .reveal-delay-3 { transition-delay: 0.35s; }
-  .reveal-delay-4 { transition-delay: 0.5s; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .d1 { transition-delay: 0.08s; }
+  .d2 { transition-delay: 0.18s; }
+  .d3 { transition-delay: 0.3s; }
 
-  /* ── Big statement text ── */
-  .statement {
-    font-family: 'Inter', sans-serif;
-    font-size: clamp(36px, 6vw, 64px);
-    font-weight: 900;
-    color: var(--white);
-    letter-spacing: -1.5px;
-    line-height: 1.1;
-    text-align: center;
-  }
-
-  .statement-serif {
-    font-family: 'Cormorant Garamond', serif;
-    font-style: italic;
-    font-size: clamp(28px, 5vw, 52px);
-    font-weight: 400;
-    color: var(--off-white);
-    letter-spacing: -0.5px;
-    line-height: 1.3;
+  /* ── Sections ── */
+  .section {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 80px 32px;
     text-align: center;
   }
 
@@ -234,55 +208,31 @@
     text-transform: uppercase;
     color: var(--muted);
     margin-bottom: 20px;
-    text-align: center;
   }
 
-  /* ── Strikethrough section ── */
-  .strikethrough-block {
-    text-align: center;
-    padding: 100px 32px;
-    max-width: 700px;
-    margin: 0 auto;
-  }
-
-  .strike-label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 32px;
-  }
-
-  .strike-items {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 48px;
-  }
-
-  .strike-item {
+  .big {
     font-family: 'Inter', sans-serif;
-    font-size: clamp(22px, 4vw, 36px);
-    font-weight: 700;
-    color: rgba(255,255,255,0.25);
-    letter-spacing: -0.5px;
-    position: relative;
-    display: inline-block;
+    font-size: clamp(34px, 6vw, 60px);
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -1.5px;
+    line-height: 1.1;
   }
 
-  .strike-item.crossed {
-    text-decoration: line-through;
-    text-decoration-color: rgba(255,255,255,0.15);
-  }
-
-  .strike-replace {
+  .serif {
     font-family: 'Cormorant Garamond', serif;
     font-style: italic;
-    font-size: clamp(28px, 5vw, 48px);
+    font-size: clamp(26px, 4.5vw, 46px);
     font-weight: 400;
-    color: var(--white);
-    line-height: 1.3;
+    color: var(--off-white);
+    line-height: 1.35;
+  }
+
+  .divider {
+    width: 36px;
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+    margin: 0 auto;
   }
 
   /* ── Three pillars ── */
@@ -290,169 +240,207 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 2px;
-    max-width: 900px;
-    margin: 0 auto;
+    margin-top: 40px;
   }
 
-  @media (max-width: 640px) {
-    .pillars { grid-template-columns: 1fr; }
-  }
+  @media (max-width: 600px) { .pillars { grid-template-columns: 1fr; } }
 
   .pillar {
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.07);
-    padding: 40px 28px;
+    padding: 32px 20px;
     text-align: center;
   }
-
   .pillar:first-child { border-radius: 12px 0 0 12px; }
-  .pillar:last-child { border-radius: 0 12px 12px 0; }
-
-  @media (max-width: 640px) {
+  .pillar:last-child  { border-radius: 0 12px 12px 0; }
+  @media (max-width: 600px) {
     .pillar:first-child { border-radius: 12px 12px 0 0; }
-    .pillar:last-child { border-radius: 0 0 12px 12px; }
+    .pillar:last-child  { border-radius: 0 0 12px 12px; }
   }
 
-  .pillar-icon {
-    font-size: 24px;
-    margin-bottom: 16px;
-    opacity: 0.6;
-  }
-
+  .pillar-icon { font-size: 20px; margin-bottom: 12px; opacity: 0.55; }
   .pillar-text {
     font-family: 'Cormorant Garamond', serif;
     font-style: italic;
-    font-size: 22px;
+    font-size: 19px;
     color: var(--off-white);
     line-height: 1.4;
   }
 
-  /* ── Chapter section ── */
-  .chapter-block {
+  /* ── Sneak peek block ── */
+  .peek-block {
+    position: relative;
     background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 16px;
-    padding: 56px 48px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 52px 44px;
     text-align: center;
-    max-width: 700px;
-    margin: 0 auto;
+    overflow: hidden;
   }
 
-  @media (max-width: 640px) {
-    .chapter-block { padding: 40px 24px; }
+  @media (max-width: 600px) { .peek-block { padding: 36px 24px; } }
+
+  .peek-block::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent);
   }
 
-  .chapter-tag {
-    display: inline-block;
+  .peek-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: rgba(255,255,255,0.4);
     border: 1px solid rgba(255,255,255,0.12);
     padding: 6px 14px;
     border-radius: 999px;
     margin-bottom: 28px;
   }
 
-  .chapter-title {
+  .peek-dot {
+    width: 6px; height: 6px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 50%;
+    animation: blink 1.8s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  .peek-title {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(26px, 5vw, 42px);
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 14px;
+  }
+
+  .peek-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(17px, 2.5vw, 22px);
+    color: rgba(255,255,255,0.45);
+    line-height: 1.5;
+    margin-bottom: 32px;
+  }
+
+  .peek-details {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+  }
+
+  .peek-detail {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .peek-detail span {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.18);
+    margin-top: 2px;
+    text-transform: none;
+  }
+
+  .peek-cta {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.14);
+    padding: 10px 22px;
+    border-radius: 999px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .peek-cta:hover {
+    color: #fff;
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.05);
+  }
+
+  .peek-exclusive {
+    margin-top: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.2);
+  }
+
+  /* ── Early access ── */
+  .early-section {
+    padding: 80px 32px 100px;
+    text-align: center;
+    background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.025) 30%, rgba(255,255,255,0.025) 70%, transparent);
+  }
+
+  .early-inner { max-width: 480px; margin: 0 auto; }
+
+  .early-star {
+    font-size: 32px;
+    margin-bottom: 24px;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .early-title {
     font-family: 'Inter', sans-serif;
     font-size: clamp(28px, 5vw, 44px);
     font-weight: 900;
     color: var(--white);
     letter-spacing: -1px;
-    margin-bottom: 20px;
     line-height: 1.1;
-  }
-
-  .chapter-stats {
-    display: flex;
-    justify-content: center;
-    gap: 40px;
-    margin-top: 32px;
-    flex-wrap: wrap;
-  }
-
-  .stat {
-    text-align: center;
-  }
-
-  .stat-num {
-    font-family: 'Inter', sans-serif;
-    font-size: 36px;
-    font-weight: 900;
-    color: var(--white);
-    letter-spacing: -1px;
-    line-height: 1;
-    margin-bottom: 6px;
-  }
-
-  .stat-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  /* ── Divider ── */
-  .divider {
-    width: 40px;
-    height: 1px;
-    background: rgba(255,255,255,0.12);
-    margin: 0 auto;
-  }
-
-  /* ── Early access section ── */
-  .early-access {
-    background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.03) 30%, rgba(255,255,255,0.03) 70%, transparent);
-    padding: 120px 32px;
-    text-align: center;
-  }
-
-  .early-access-inner {
-    max-width: 520px;
-    margin: 0 auto;
-  }
-
-  .early-star {
-    font-size: 36px;
-    margin-bottom: 28px;
-    animation: pulse 2.5s ease-in-out infinite;
-  }
-
-  .early-title {
-    font-family: 'Inter', sans-serif;
-    font-size: clamp(30px, 5vw, 48px);
-    font-weight: 900;
-    color: var(--white);
-    letter-spacing: -1px;
-    line-height: 1.1;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
 
   .early-sub {
     font-family: 'Cormorant Garamond', serif;
     font-style: italic;
-    font-size: 20px;
+    font-size: 19px;
     color: var(--muted);
     line-height: 1.6;
-    margin-bottom: 48px;
+    margin-bottom: 36px;
   }
 
   .early-form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    max-width: 400px;
+    gap: 10px;
+    max-width: 380px;
     margin: 0 auto;
   }
 
   .early-input {
     background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.11);
     border-radius: 12px;
-    padding: 16px 20px;
+    padding: 15px 18px;
     font-family: 'Inter', sans-serif;
     font-size: 15px;
     color: #fff;
@@ -460,10 +448,9 @@
     transition: border-color 0.2s, background 0.2s;
     width: 100%;
   }
-
-  .early-input::placeholder { color: rgba(255,255,255,0.25); }
+  .early-input::placeholder { color: rgba(255,255,255,0.22); }
   .early-input:focus {
-    border-color: rgba(255,255,255,0.35);
+    border-color: rgba(255,255,255,0.32);
     background: rgba(255,255,255,0.09);
   }
 
@@ -472,17 +459,15 @@
     color: #000;
     border: none;
     border-radius: 999px;
-    padding: 16px 32px;
+    padding: 15px 28px;
     font-family: 'Inter', sans-serif;
     font-size: 15px;
     font-weight: 800;
-    letter-spacing: 0.01em;
     cursor: pointer;
     transition: background 0.2s, transform 0.1s;
     width: 100%;
     margin-top: 4px;
   }
-
   .early-btn:hover { background: rgba(255,255,255,0.88); }
   .early-btn:active { transform: scale(0.98); }
 
@@ -490,35 +475,31 @@
     display: none;
     font-family: 'Cormorant Garamond', serif;
     font-style: italic;
-    font-size: 22px;
-    color: rgba(255,255,255,0.8);
+    font-size: 21px;
+    color: rgba(255,255,255,0.75);
     line-height: 1.5;
-    padding: 20px 0;
+    padding: 16px 0;
   }
 
   .early-note {
     font-size: 11px;
     color: var(--very-muted);
-    margin-top: 16px;
+    margin-top: 14px;
     letter-spacing: 0.04em;
   }
 
   /* ── Footer ── */
   footer {
     border-top: 1px solid rgba(255,255,255,0.06);
-    padding: 32px;
+    padding: 28px 32px;
     text-align: center;
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.14);
   }
-
-  footer a {
-    color: rgba(255,255,255,0.25);
-    text-decoration: none;
-  }
+  footer a { color: rgba(255,255,255,0.22); text-decoration: none; }
   footer a:hover { color: rgba(255,255,255,0.5); }
 </style>
 </head>
@@ -539,59 +520,31 @@
   <div class="hero-content">
     <p class="hero-eyebrow">a question worth asking</p>
     <h1 class="hero-title">what is orbit?</h1>
-    <div class="hero-star">✦</div>
+    <p class="hero-sub">a platform that turns your campus into a playground. real adventures, real people, real world.</p>
+    <div class="hero-launch">launching fall 2026 ✦</div>
   </div>
   <div class="scroll-hint" onclick="document.querySelector('.section').scrollIntoView({behavior:'smooth'})">
     <span class="scroll-hint-label">scroll</span>
     <div class="scroll-arrows">
-      <svg class="arr1" width="24" height="14" viewBox="0 0 24 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg class="arr1" width="24" height="14" viewBox="0 0 24 14" fill="none">
         <polyline points="2,2 12,11 22,2" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <svg class="arr2" width="24" height="14" viewBox="0 0 24 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg class="arr2" width="24" height="14" viewBox="0 0 24 14" fill="none">
         <polyline points="2,2 12,11 22,2" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <svg class="arr3" width="24" height="14" viewBox="0 0 24 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg class="arr3" width="24" height="14" viewBox="0 0 24 14" fill="none">
         <polyline points="2,2 12,11 22,2" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
   </div>
 </section>
 
-<!-- Section 1: Three definitions -->
-<div class="section" style="text-align:center; padding-bottom: 60px;">
+<!-- What orbit is -->
+<div class="section">
   <p class="label reveal">orbit is</p>
-  <h2 class="statement reveal reveal-delay-1" style="margin-bottom: 16px;">a social experiment.</h2>
-  <h2 class="statement-serif reveal reveal-delay-2" style="margin-bottom: 16px;">a side quest generator.</h2>
-  <h2 class="statement reveal reveal-delay-3" style="font-size: clamp(18px, 3vw, 28px); color: rgba(255,255,255,0.55); font-weight: 600; letter-spacing: -0.5px;">a commitment to making your college experience<br>actually fun.</h2>
-</div>
-
-<!-- Divider -->
-<div class="section" style="padding: 20px 32px;">
-  <div class="divider reveal"></div>
-</div>
-
-<!-- Section 2: The main plot is overrated -->
-<div class="strikethrough-block">
-  <p class="strike-label reveal">the main plot is overrated.</p>
-  <div class="strike-items reveal reveal-delay-1">
-    <span class="strike-item crossed">class.</span>
-    <span class="strike-item crossed">library.</span>
-    <span class="strike-item crossed">dining hall.</span>
-    <span class="strike-item crossed">repeat.</span>
-  </div>
-  <p class="strike-replace reveal reveal-delay-2">you didn't come to college for this.</p>
-</div>
-
-<!-- Divider -->
-<div class="section" style="padding: 20px 32px;">
-  <div class="divider reveal"></div>
-</div>
-
-<!-- Section 3: What orbit gives you -->
-<div class="section" style="text-align: center; padding-bottom: 60px;">
-  <p class="label reveal">every week, orbit gives you</p>
-  <h2 class="statement-serif reveal reveal-delay-1" style="font-size: clamp(28px, 5vw, 52px); margin-bottom: 56px;">a real adventure, with real people,<br>in the real world.</h2>
-  <div class="pillars reveal reveal-delay-2">
+  <h2 class="big reveal d1" style="margin-bottom: 14px;">your side quest generator.</h2>
+  <p class="serif reveal d2">every week, a new adventure drops.<br>somewhere to go. something to do. people to meet.</p>
+  <div class="pillars reveal d3">
     <div class="pillar">
       <div class="pillar-icon">📍</div>
       <p class="pillar-text">somewhere to go.</p>
@@ -607,56 +560,61 @@
   </div>
 </div>
 
-<!-- Divider -->
-<div class="section" style="padding: 20px 32px;">
+<div class="section" style="padding: 0 32px 60px;">
   <div class="divider reveal"></div>
 </div>
 
-<!-- Section 4: The Amazing Race Harvard -->
-<div class="section">
-  <div class="chapter-block reveal">
-    <span class="chapter-tag">chapter one</span>
-    <h2 class="chapter-title">the amazing race harvard.</h2>
-    <p class="statement-serif" style="font-size: clamp(18px, 3vw, 24px); color: var(--muted);">five weeks. fifteen quests. one city.</p>
-    <div class="chapter-stats">
-      <div class="stat">
-        <div class="stat-num">7</div>
-        <div class="stat-label">days per round</div>
+<!-- Sneak peek: Amazing Race Harvard -->
+<div class="section" style="padding-top: 0;">
+  <div class="peek-block reveal">
+    <div class="peek-tag">
+      <div class="peek-dot"></div>
+      coming first · harvard only
+    </div>
+    <h2 class="peek-title">the amazing race harvard.</h2>
+    <p class="peek-sub">orbit's first side quest — dropping this spring,<br>exclusively for Harvard students.</p>
+    <div class="peek-details">
+      <div class="peek-detail">
+        teams of 4
+        <span>compete together</span>
       </div>
-      <div class="stat">
-        <div class="stat-num">∞</div>
-        <div class="stat-label">challenges</div>
+      <div class="peek-detail">
+        weekly challenges
+        <span>across campus + the city</span>
       </div>
-      <div class="stat">
-        <div class="stat-num">★</div>
-        <div class="stat-label">earn stars to win</div>
+      <div class="peek-detail">
+        earn stars
+        <span>to win</span>
       </div>
     </div>
-    <p class="statement" style="font-size: clamp(36px, 7vw, 72px); margin-top: 40px; color: rgba(255,255,255,0.9);">go.</p>
+    <a href="/signup" class="peek-cta">get on the waitlist ✦</a>
+    <p class="peek-exclusive">limited spots · harvard emails only</p>
   </div>
 </div>
 
-<!-- Divider -->
-<div class="section" style="padding: 20px 32px;">
+<div class="section" style="padding: 0 32px 60px;">
   <div class="divider reveal"></div>
 </div>
 
-<!-- Section 5: The manifesto line -->
-<div class="section" style="text-align: center;">
-  <h2 class="statement-serif reveal" style="font-size: clamp(24px, 4.5vw, 44px); color: var(--off-white); line-height: 1.4;">
-    all college students deserve a side quest.<br>
-    <span style="color: var(--white); font-weight: 600;">yours is waiting.</span>
+<!-- What's coming -->
+<div class="section" style="padding-top: 0;">
+  <p class="label reveal">what's coming</p>
+  <h2 class="serif reveal d1" style="font-size: clamp(24px, 4vw, 40px); margin-bottom: 16px;">
+    orbit launches everywhere this fall.
   </h2>
+  <p class="reveal d2" style="font-size: 15px; color: rgba(255,255,255,0.38); line-height: 1.8; max-width: 480px; margin: 0 auto;">
+    join the waitlist now and get early access to side quests this summer — before anyone else.
+  </p>
 </div>
 
-<!-- Early Access Section -->
-<section class="early-access">
-  <div class="early-access-inner">
+<!-- Early access -->
+<section class="early-section">
+  <div class="early-inner">
     <div class="early-star reveal">✦</div>
-    <h2 class="early-title reveal reveal-delay-1">get early access.</h2>
-    <p class="early-sub reveal reveal-delay-2">orbit is coming to more campuses.<br>be the first to know when your side quest drops.</p>
+    <h2 class="early-title reveal d1">get early access.</h2>
+    <p class="early-sub reveal d2">be first when orbit comes to your campus.</p>
 
-    <form class="early-form reveal reveal-delay-3" id="early-form">
+    <form class="early-form reveal d3" id="early-form">
       <input class="early-input" type="text" id="ea-name" placeholder="your name" required>
       <input class="early-input" type="tel" id="ea-phone" placeholder="your phone number" required>
       <input class="early-input" type="email" id="ea-email" placeholder="your email" required>
@@ -681,8 +639,9 @@
   const vid = document.getElementById('video-bg');
   if (vid) {
     vid.play().catch(() => {
-      document.addEventListener('touchstart', () => vid.play(), { once: true });
-      document.addEventListener('click', () => vid.play(), { once: true });
+      ['touchstart','click'].forEach(e =>
+        document.addEventListener(e, () => vid.play(), { once: true })
+      );
     });
   }
 
@@ -694,7 +653,7 @@
         observer.unobserve(e.target);
       }
     });
-  }, { threshold: 0.15 });
+  }, { threshold: 0.12 });
 
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
@@ -702,7 +661,7 @@
   document.getElementById('early-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector('button');
-    const name = document.getElementById('ea-name').value.trim();
+    const name  = document.getElementById('ea-name').value.trim();
     const phone = document.getElementById('ea-phone').value.trim();
     const email = document.getElementById('ea-email').value.trim();
 
