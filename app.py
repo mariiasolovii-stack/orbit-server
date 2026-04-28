@@ -1,6 +1,8 @@
 import os
 import re
 import logging
+import threading
+import time
 import requests as http_requests
 from datetime import datetime
 
@@ -323,6 +325,22 @@ try:
     init_db()
 except Exception as e:
     logging.error(f"Could not initialize DB on startup: {e}")
+
+# ── Self-ping keep-alive (prevents Render free tier cold starts) ──
+def _keep_alive():
+    # Wait 30s after startup before first ping
+    time.sleep(30)
+    url = os.environ.get('RENDER_EXTERNAL_URL', 'https://orbit-server-90x3.onrender.com') + '/health'
+    while True:
+        try:
+            http_requests.get(url, timeout=10)
+            logging.info(f"Keep-alive ping sent to {url}")
+        except Exception as e:
+            logging.warning(f"Keep-alive ping failed: {e}")
+        time.sleep(4 * 60)  # ping every 4 minutes
+
+_t = threading.Thread(target=_keep_alive, daemon=True)
+_t.start()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
