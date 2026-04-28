@@ -251,6 +251,8 @@ def api_signup():
         return jsonify({'success': False, 'error': 'Please enter a valid phone number (at least 10 digits).'}), 400
     if not team_name:
         return jsonify({'success': False, 'error': 'Team name is required.'}), 400
+    if not t1_name:
+        return jsonify({'success': False, 'error': 'Teammate 1 full name is required.'}), 400
     if not is_harvard_email(t1_email):
         return jsonify({'success': False, 'error': 'Teammate 1 must have a Harvard email.'}), 400
     if t2_email and not is_harvard_email(t2_email):
