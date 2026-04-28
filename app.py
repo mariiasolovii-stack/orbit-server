@@ -73,29 +73,39 @@ def send_confirmation_email(to_email, name, team_name):
         logging.warning("RESEND_API_KEY not configured — skipping confirmation email.")
         return
 
-    subject = "you're on the waitlist. your side quest drops soon. ✦"
+    subject = "you're on the Amazing Race Harvard waitlist"
 
     html_body = """<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8">
-<style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#fff;margin:0;padding:0}
-.wrap{max-width:480px;margin:0 auto;padding:48px 32px}
-.logo{font-size:20px;font-weight:700;letter-spacing:.06em;color:rgba(255,255,255,.7);margin-bottom:40px}
-h1{font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:16px}
-p{font-size:16px;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:12px}
-.tag{font-size:13px;color:rgba(255,255,255,.25);margin-top:40px}
-</style>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>You're on the waitlist</title>
 </head>
-<body>
-<div class="wrap">
-  <div class="logo">orbit &#10022;</div>
-  <h1>you're on the waitlist.</h1>
-  <p>hey """ + name + """ &mdash; your team <strong style="color:#fff">""" + team_name + """</strong> is locked in.</p>
-  <p>your side quest drops soon.</p>
-  <p>stay close.</p>
-  <p class="tag">&#10022; orbit &nbsp;&middot;&nbsp; amazing race harvard</p>
-</div>
+<body style="margin:0;padding:0;background-color:#f4f4f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4;padding:40px 0">
+<tr><td align="center">
+<table width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+  <tr><td style="background-color:#0a0a0a;padding:32px 40px">
+    <p style="margin:0;font-size:14px;font-weight:700;letter-spacing:0.1em;color:rgba(255,255,255,0.6);text-transform:uppercase">ORBIT &#10022; AMAZING RACE HARVARD</p>
+  </td></tr>
+  <tr><td style="padding:40px">
+    <h1 style="margin:0 0 16px;font-size:26px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px">you're on the waitlist.</h1>
+    <p style="margin:0 0 12px;font-size:16px;color:#444;line-height:1.7">hey """ + name + """ &mdash; your team <strong style="color:#0a0a0a">""" + team_name + """</strong> is locked in.</p>
+    <p style="margin:0 0 12px;font-size:16px;color:#444;line-height:1.7">your side quest drops soon. seven days, infinite challenges, earn stars to win.</p>
+    <p style="margin:0 0 32px;font-size:16px;color:#444;line-height:1.7">stay close.</p>
+    <table cellpadding="0" cellspacing="0">
+      <tr><td style="background-color:#0a0a0a;border-radius:8px;padding:14px 28px">
+        <a href="https://joinorbit.one" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:0.02em">visit joinorbit.one</a>
+      </td></tr>
+    </table>
+  </td></tr>
+  <tr><td style="padding:24px 40px;border-top:1px solid #f0f0f0">
+    <p style="margin:0;font-size:12px;color:#aaa">&#10022; orbit &middot; amazing race harvard &middot; <a href="https://joinorbit.one" style="color:#aaa">joinorbit.one</a></p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
 </body>
 </html>"""
 
@@ -113,9 +123,13 @@ stay close.
     payload = {
         "from": f"{FROM_NAME} <{FROM_EMAIL}>",
         "to": [to_email],
+        "reply_to": FROM_EMAIL,
         "subject": subject,
         "html": html_body,
         "text": text_body,
+        "headers": {
+            "X-Entity-Ref-ID": f"orbit-waitlist-{to_email}",
+        },
     }
 
     try:
