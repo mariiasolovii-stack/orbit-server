@@ -542,6 +542,28 @@
     padding: 20px 0;
   }
 
+  .join-team-btn {
+    display: block;
+    margin: 14px auto 0;
+    max-width: 380px;
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.35);
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 999px;
+    padding: 12px 24px;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+  }
+  .join-team-btn:hover {
+    color: rgba(255,255,255,0.75);
+    border-color: rgba(255,255,255,0.28);
+    background: rgba(255,255,255,0.04);
+  }
+
   /* ════════════════════════════════
      SCROLL REVEAL
   ════════════════════════════════ */
@@ -691,6 +713,8 @@
       <input class="early-input" type="email" id="ea-email" placeholder="your email" required>
       <button class="early-btn" type="submit">get early access ✦</button>
     </form>
+
+    <a href="/join" class="join-team-btn">join the orbit team →</a>
 
     <div class="early-success" id="early-success">
       you're on the list. your side quest is coming. ✦

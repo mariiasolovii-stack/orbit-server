@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Join the Orbit Team ✦</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,400;1,600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --white: #ffffff;
+    --bg: #080808;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--white);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* ── Video background ── */
+  #video-bg {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 100%; min-height: 100%;
+    width: auto; height: auto;
+    object-fit: cover;
+    z-index: 0;
+    opacity: 0.22;
+    pointer-events: none;
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(8,8,8,0.6) 0%, rgba(8,8,8,0.75) 60%, rgba(8,8,8,0.97) 100%);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* ── Nav ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 32px;
+    background: linear-gradient(to bottom, rgba(8,8,8,0.85) 0%, transparent 100%);
+  }
+
+  .nav-logo {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-logo:hover { color: rgba(255,255,255,0.8); }
+
+  .nav-back {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.14);
+    padding: 8px 18px;
+    border-radius: 999px;
+    transition: all 0.2s;
+  }
+  .nav-back:hover {
+    color: #fff;
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* ── Main content ── */
+  main {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 24px 80px;
+    text-align: center;
+  }
+
+  .star {
+    font-size: 22px;
+    color: rgba(255,255,255,0.2);
+    margin-bottom: 28px;
+    opacity: 0;
+    animation: fadeUp 0.7s ease forwards 0.1s;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 16px;
+    opacity: 0;
+    animation: fadeUp 0.7s ease forwards 0.2s;
+  }
+
+  h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(36px, 7vw, 72px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -2.5px;
+    line-height: 0.97;
+    margin-bottom: 18px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.35s;
+  }
+
+  .sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(17px, 2.2vw, 22px);
+    color: rgba(255,255,255,0.38);
+    line-height: 1.6;
+    margin-bottom: 52px;
+    max-width: 480px;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.5s;
+  }
+
+  /* ── Form ── */
+  .form-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 24px;
+    padding: 44px 40px 48px;
+    width: 100%;
+    max-width: 480px;
+    text-align: left;
+    opacity: 0;
+    animation: fadeUp 0.9s ease forwards 0.65s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .form-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent);
+  }
+
+  @media (max-width: 540px) { .form-card { padding: 32px 24px 36px; } }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 16px;
+  }
+
+  .field label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .field input,
+  .field textarea {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    color: #fff;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    width: 100%;
+    resize: none;
+  }
+  .field input::placeholder,
+  .field textarea::placeholder { color: rgba(255,255,255,0.2); }
+  .field input:focus,
+  .field textarea:focus {
+    border-color: rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.09);
+  }
+
+  .field textarea {
+    min-height: 110px;
+    line-height: 1.6;
+  }
+
+  .field-hint {
+    font-size: 11px;
+    color: rgba(255,255,255,0.2);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  .submit-btn {
+    background: #fff;
+    color: #000;
+    border: none;
+    border-radius: 999px;
+    padding: 16px 28px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 8px;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(255,255,255,0.1);
+    letter-spacing: -0.2px;
+  }
+  .submit-btn:hover {
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 6px 32px rgba(255,255,255,0.18);
+    transform: translateY(-1px);
+  }
+  .submit-btn:active { transform: scale(0.98); }
+  .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+  /* ── Success state ── */
+  .success-state {
+    display: none;
+    text-align: center;
+    padding: 12px 0;
+  }
+
+  .success-star {
+    font-size: 28px;
+    color: rgba(255,255,255,0.25);
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .success-title {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(24px, 4vw, 36px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+  }
+
+  .success-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 20px;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.6;
+  }
+
+  /* ── Error message ── */
+  .error-msg {
+    display: none;
+    font-size: 13px;
+    color: rgba(255,120,120,0.85);
+    font-weight: 600;
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  /* ── Footer ── */
+  footer {
+    position: relative;
+    z-index: 2;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 24px 32px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.14);
+  }
+  footer a { color: rgba(255,255,255,0.2); text-decoration: none; }
+  footer a:hover { color: rgba(255,255,255,0.5); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<video id="video-bg" autoplay muted loop playsinline webkit-playsinline>
+  <source src="/static/bg.mp4" type="video/mp4">
+</video>
+<div class="overlay"></div>
+
+<!-- Nav -->
+<nav>
+  <a class="nav-logo" href="/">ORBIT ✦</a>
+  <a class="nav-back" href="/about">← back</a>
+</nav>
+
+<!-- Main -->
+<main>
+  <div class="star">✦</div>
+  <p class="eyebrow">we're building something</p>
+  <h1>join the orbit team.</h1>
+  <p class="sub">we're a small team building something we actually want to exist. if that sounds like you, say hi.</p>
+
+  <div class="form-card">
+    <form id="join-form">
+      <div class="field">
+        <label for="j-name">your name</label>
+        <input type="text" id="j-name" placeholder="first and last" required>
+      </div>
+      <div class="field">
+        <label for="j-email">your email</label>
+        <input type="email" id="j-email" placeholder="you@wherever.com" required>
+      </div>
+      <div class="field">
+        <label for="j-pitch">why you?</label>
+        <textarea id="j-pitch" placeholder="1–2 sentences. what draws you to orbit and what you'd bring." required></textarea>
+        <span class="field-hint">keep it short. we read every one.</span>
+      </div>
+      <button class="submit-btn" type="submit">send it ✦</button>
+      <p class="error-msg" id="join-error"></p>
+    </form>
+
+    <div class="success-state" id="join-success">
+      <span class="success-star">✦</span>
+      <div class="success-title">we got it.</div>
+      <p class="success-sub">we'll be in touch if it's a fit.<br>thanks for wanting to build this.</p>
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer>
+  <a href="/">ORBIT ✦</a> &nbsp;·&nbsp; <a href="/about">what is orbit?</a> &nbsp;·&nbsp; <a href="/signup">join waitlist</a>
+</footer>
+
+<script>
+  // Video autoplay
+  const vid = document.getElementById('video-bg');
+  if (vid) {
+    vid.play().catch(() => {
+      ['touchstart','click'].forEach(ev =>
+        document.addEventListener(ev, () => vid.play(), { once: true })
+      );
+    });
+  }
+
+  // Form submit
+  document.getElementById('join-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn   = e.target.querySelector('button');
+    const name  = document.getElementById('j-name').value.trim();
+    const email = document.getElementById('j-email').value.trim();
+    const pitch = document.getElementById('j-pitch').value.trim();
+    const errEl = document.getElementById('join-error');
+
+    if (!name || !email || !pitch) return;
+
+    btn.textContent = 'sending...';
+    btn.disabled = true;
+    errEl.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, pitch })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('join-form').style.display = 'none';
+        document.getElementById('join-success').style.display = 'block';
+      } else {
+        errEl.textContent = data.error || 'something went wrong. try again.';
+        errEl.style.display = 'block';
+        btn.textContent = 'send it ✦';
+        btn.disabled = false;
+      }
+    } catch {
+      errEl.textContent = 'something went wrong. try again.';
+      errEl.style.display = 'block';
+      btn.textContent = 'send it ✦';
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

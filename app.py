@@ -80,6 +80,16 @@ def init_db():
         cur.execute("ALTER TABLE early_access DROP COLUMN IF EXISTS school")
     except Exception:
         pass
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS team_applications (
+            id          SERIAL PRIMARY KEY,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            name        TEXT NOT NULL,
+            email       TEXT UNIQUE NOT NULL,
+            pitch       TEXT NOT NULL,
+            ip_address  TEXT
+        )
+    """)
     conn.commit()
     cur.close()
     conn.close()
@@ -200,6 +210,40 @@ def layout_preview():
 @app.route('/about')
 def about():
     return render_template('about.html')
+
+@app.route('/join')
+def join():
+    return render_template('join.html')
+
+@app.route('/api/join', methods=['POST'])
+def api_join():
+    data  = request.get_json(force=True, silent=True) or {}
+    name  = (data.get('name') or '').strip()
+    email = (data.get('email') or '').strip()
+    pitch = (data.get('pitch') or '').strip()
+
+    if not name:
+        return jsonify({'success': False, 'error': 'Name is required.'}), 400
+    if not email or '@' not in email:
+        return jsonify({'success': False, 'error': 'A valid email is required.'}), 400
+    if not pitch:
+        return jsonify({'success': False, 'error': 'Please tell us why you\'re interested.'}), 400
+
+    try:
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO team_applications (name, email, pitch, ip_address) VALUES (%s, %s, %s, %s) ON CONFLICT (email) DO NOTHING",
+            (name, email.lower(), pitch, ip_address)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True}), 201
+    except Exception as e:
+        logging.error(f"Join team DB error: {e}")
+        return jsonify({'success': False, 'error': 'Database error. Please try again.'}), 500
 
 @app.route('/api/early-access', methods=['POST'])
 def api_early_access():
