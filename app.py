@@ -66,7 +66,7 @@ def init_db():
 # ── Email via Resend ──
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
 FROM_EMAIL     = os.environ.get('FROM_EMAIL', 'play@joinorbit.one')
-FROM_NAME      = os.environ.get('FROM_NAME', 'orbit ✦')
+FROM_NAME      = os.environ.get('FROM_NAME', 'Amazing Race Harvard')
 
 def send_confirmation_email(to_email, name, team_name):
     if not RESEND_API_KEY:
