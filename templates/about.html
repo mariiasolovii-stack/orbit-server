@@ -544,25 +544,29 @@
 
   .join-team-btn {
     display: block;
-    margin: 14px auto 0;
+    margin: 10px auto 0;
     max-width: 380px;
     text-align: center;
     font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    color: rgba(255,255,255,0.35);
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+    color: #000;
+    background: #fff;
     text-decoration: none;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: none;
     border-radius: 999px;
-    padding: 12px 24px;
-    transition: color 0.2s, border-color 0.2s, background 0.2s;
+    padding: 16px 28px;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(255,255,255,0.1);
+    width: 100%;
   }
   .join-team-btn:hover {
-    color: rgba(255,255,255,0.75);
-    border-color: rgba(255,255,255,0.28);
-    background: rgba(255,255,255,0.04);
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 6px 32px rgba(255,255,255,0.18);
+    transform: translateY(-1px);
   }
+  .join-team-btn:active { transform: scale(0.98); }
 
   /* ════════════════════════════════
      SCROLL REVEAL
