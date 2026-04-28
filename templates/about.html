@@ -634,8 +634,8 @@
 
     <form class="early-form reveal reveal-delay-3" id="early-form">
       <input class="early-input" type="text" id="ea-name" placeholder="your name" required>
+      <input class="early-input" type="tel" id="ea-phone" placeholder="your phone number" required>
       <input class="early-input" type="email" id="ea-email" placeholder="your email" required>
-      <input class="early-input" type="text" id="ea-school" placeholder="your school (optional)">
       <button class="early-btn" type="submit">get early access ✦</button>
     </form>
 
@@ -679,8 +679,8 @@
     e.preventDefault();
     const btn = e.target.querySelector('button');
     const name = document.getElementById('ea-name').value.trim();
+    const phone = document.getElementById('ea-phone').value.trim();
     const email = document.getElementById('ea-email').value.trim();
-    const school = document.getElementById('ea-school').value.trim();
 
     btn.textContent = 'adding you...';
     btn.disabled = true;
@@ -689,7 +689,7 @@
       const res = await fetch('/api/early-access', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, school })
+        body: JSON.stringify({ name, phone, email })
       });
       const data = await res.json();
       if (data.success) {

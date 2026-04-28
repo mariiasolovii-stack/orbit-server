@@ -64,10 +64,20 @@ def init_db():
             created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             name        TEXT,
             email       TEXT UNIQUE NOT NULL,
-            school      TEXT,
+            phone       TEXT,
             ip_address  TEXT
         )
     """)
+    # Add phone column if table already exists with old schema
+    try:
+        cur.execute("ALTER TABLE early_access ADD COLUMN IF NOT EXISTS phone TEXT")
+    except Exception:
+        pass
+    # Remove school column reference gracefully (no-op if already gone)
+    try:
+        cur.execute("ALTER TABLE early_access DROP COLUMN IF EXISTS school")
+    except Exception:
+        pass
     conn.commit()
     cur.close()
     conn.close()
@@ -188,9 +198,9 @@ def about():
 @app.route('/api/early-access', methods=['POST'])
 def api_early_access():
     data = request.get_json(force=True, silent=True) or {}
-    name   = (data.get('name') or '').strip() or None
-    email  = (data.get('email') or '').strip()
-    school = (data.get('school') or '').strip() or None
+    name  = (data.get('name') or '').strip() or None
+    email = (data.get('email') or '').strip()
+    phone = (data.get('phone') or '').strip() or None
 
     if not email or '@' not in email:
         return jsonify({'success': False, 'error': 'A valid email is required.'}), 400
@@ -200,8 +210,8 @@ def api_early_access():
         conn = get_db()
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO early_access (name, email, school, ip_address) VALUES (%s, %s, %s, %s) ON CONFLICT (email) DO NOTHING",
-            (name, email.lower(), school, ip_address)
+            "INSERT INTO early_access (name, email, phone, ip_address) VALUES (%s, %s, %s, %s) ON CONFLICT (email) DO NOTHING",
+            (name, email.lower(), phone, ip_address)
         )
         conn.commit()
         cur.close()
