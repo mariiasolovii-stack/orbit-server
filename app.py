@@ -58,6 +58,16 @@ def init_db():
         cur.execute("ALTER TABLE waitlist ALTER COLUMN t1_phone DROP NOT NULL")
     except Exception:
         pass
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS early_access (
+            id          SERIAL PRIMARY KEY,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            name        TEXT,
+            email       TEXT UNIQUE NOT NULL,
+            school      TEXT,
+            ip_address  TEXT
+        )
+    """)
     conn.commit()
     cur.close()
     conn.close()
@@ -170,6 +180,36 @@ def signup():
 @app.route('/thankyou')
 def thankyou():
     return render_template('thankyou.html')
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route('/api/early-access', methods=['POST'])
+def api_early_access():
+    data = request.get_json(force=True, silent=True) or {}
+    name   = (data.get('name') or '').strip() or None
+    email  = (data.get('email') or '').strip()
+    school = (data.get('school') or '').strip() or None
+
+    if not email or '@' not in email:
+        return jsonify({'success': False, 'error': 'A valid email is required.'}), 400
+
+    try:
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO early_access (name, email, school, ip_address) VALUES (%s, %s, %s, %s) ON CONFLICT (email) DO NOTHING",
+            (name, email.lower(), school, ip_address)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True}), 201
+    except Exception as e:
+        logging.error(f"Early access DB error: {e}")
+        return jsonify({'success': False, 'error': 'Database error. Please try again.'}), 500
 
 @app.route('/api/signup', methods=['POST'])
 def api_signup():

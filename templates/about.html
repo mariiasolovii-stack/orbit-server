@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What is Orbit? ✦</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --white: #ffffff;
+    --off-white: rgba(255,255,255,0.85);
+    --muted: rgba(255,255,255,0.40);
+    --very-muted: rgba(255,255,255,0.18);
+    --bg: #080808;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--white);
+    overflow-x: hidden;
+  }
+
+  /* ── Fixed nav ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 32px;
+    background: linear-gradient(to bottom, rgba(8,8,8,0.85) 0%, transparent 100%);
+  }
+
+  .nav-logo {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-logo:hover { color: rgba(255,255,255,0.9); }
+
+  .nav-cta {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.18);
+    padding: 8px 18px;
+    border-radius: 999px;
+    transition: all 0.2s;
+  }
+  .nav-cta:hover {
+    color: #fff;
+    border-color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.06);
+  }
+
+  /* ── Hero section ── */
+  .hero {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  #video-bg {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 100%;
+    min-height: 100%;
+    width: auto; height: auto;
+    object-fit: cover;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(8,8,8,0.5) 0%, rgba(8,8,8,0.7) 60%, rgba(8,8,8,1) 100%);
+    z-index: 1;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    padding: 0 24px;
+  }
+
+  .hero-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .hero-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(52px, 10vw, 96px);
+    font-weight: 400;
+    color: var(--white);
+    line-height: 1.05;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+  }
+
+  .hero-star {
+    font-size: 28px;
+    color: rgba(255,255,255,0.6);
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--very-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .scroll-hint::after {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
+    animation: scrollLine 1.8s ease-in-out infinite;
+  }
+
+  @keyframes scrollLine {
+    0% { opacity: 0; transform: scaleY(0); transform-origin: top; }
+    50% { opacity: 1; transform: scaleY(1); transform-origin: top; }
+    100% { opacity: 0; transform: scaleY(1); transform-origin: bottom; }
+  }
+
+  /* ── Scroll sections ── */
+  .section {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 100px 32px;
+  }
+
+  .section-full {
+    width: 100%;
+    padding: 100px 32px;
+  }
+
+  /* Fade-in animation */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.35s; }
+  .reveal-delay-4 { transition-delay: 0.5s; }
+
+  /* ── Big statement text ── */
+  .statement {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  .statement-serif {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 400;
+    color: var(--off-white);
+    letter-spacing: -0.5px;
+    line-height: 1.3;
+    text-align: center;
+  }
+
+  .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  /* ── Strikethrough section ── */
+  .strikethrough-block {
+    text-align: center;
+    padding: 100px 32px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .strike-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+
+  .strike-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 48px;
+  }
+
+  .strike-item {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(22px, 4vw, 36px);
+    font-weight: 700;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: -0.5px;
+    position: relative;
+    display: inline-block;
+  }
+
+  .strike-item.crossed {
+    text-decoration: line-through;
+    text-decoration-color: rgba(255,255,255,0.15);
+  }
+
+  .strike-replace {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 400;
+    color: var(--white);
+    line-height: 1.3;
+  }
+
+  /* ── Three pillars ── */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 640px) {
+    .pillars { grid-template-columns: 1fr; }
+  }
+
+  .pillar {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    padding: 40px 28px;
+    text-align: center;
+  }
+
+  .pillar:first-child { border-radius: 12px 0 0 12px; }
+  .pillar:last-child { border-radius: 0 12px 12px 0; }
+
+  @media (max-width: 640px) {
+    .pillar:first-child { border-radius: 12px 12px 0 0; }
+    .pillar:last-child { border-radius: 0 0 12px 12px; }
+  }
+
+  .pillar-icon {
+    font-size: 24px;
+    margin-bottom: 16px;
+    opacity: 0.6;
+  }
+
+  .pillar-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--off-white);
+    line-height: 1.4;
+  }
+
+  /* ── Chapter section ── */
+  .chapter-block {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 56px 48px;
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 640px) {
+    .chapter-block { padding: 40px 24px; }
+  }
+
+  .chapter-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 6px 14px;
+    border-radius: 999px;
+    margin-bottom: 28px;
+  }
+
+  .chapter-title {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -1px;
+    margin-bottom: 20px;
+    line-height: 1.1;
+  }
+
+  .chapter-stats {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Inter', sans-serif;
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── Divider ── */
+  .divider {
+    width: 40px;
+    height: 1px;
+    background: rgba(255,255,255,0.12);
+    margin: 0 auto;
+  }
+
+  /* ── Early access section ── */
+  .early-access {
+    background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.03) 30%, rgba(255,255,255,0.03) 70%, transparent);
+    padding: 120px 32px;
+    text-align: center;
+  }
+
+  .early-access-inner {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .early-star {
+    font-size: 36px;
+    margin-bottom: 28px;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  .early-title {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(30px, 5vw, 48px);
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  .early-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 20px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 48px;
+  }
+
+  .early-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .early-input {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    color: #fff;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    width: 100%;
+  }
+
+  .early-input::placeholder { color: rgba(255,255,255,0.25); }
+  .early-input:focus {
+    border-color: rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.09);
+  }
+
+  .early-btn {
+    background: #fff;
+    color: #000;
+    border: none;
+    border-radius: 999px;
+    padding: 16px 32px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .early-btn:hover { background: rgba(255,255,255,0.88); }
+  .early-btn:active { transform: scale(0.98); }
+
+  .early-success {
+    display: none;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 22px;
+    color: rgba(255,255,255,0.8);
+    line-height: 1.5;
+    padding: 20px 0;
+  }
+
+  .early-note {
+    font-size: 11px;
+    color: var(--very-muted);
+    margin-top: 16px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 32px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.15);
+  }
+
+  footer a {
+    color: rgba(255,255,255,0.25);
+    text-decoration: none;
+  }
+  footer a:hover { color: rgba(255,255,255,0.5); }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <a class="nav-logo" href="/">← ORBIT ✦ AMAZING RACE HARVARD</a>
+  <a class="nav-cta" href="/signup">join waitlist ✦</a>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <video id="video-bg" autoplay muted loop playsinline webkit-playsinline>
+    <source src="/static/bg.mp4" type="video/mp4">
+  </video>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <p class="hero-eyebrow">a question worth asking</p>
+    <h1 class="hero-title">what is orbit?</h1>
+    <div class="hero-star">✦</div>
+  </div>
+  <div class="scroll-hint">scroll</div>
+</section>
+
+<!-- Section 1: Three definitions -->
+<div class="section" style="text-align:center; padding-bottom: 60px;">
+  <p class="label reveal">orbit is</p>
+  <h2 class="statement reveal reveal-delay-1" style="margin-bottom: 16px;">a social experiment.</h2>
+  <h2 class="statement-serif reveal reveal-delay-2" style="margin-bottom: 16px;">a side quest generator.</h2>
+  <h2 class="statement reveal reveal-delay-3" style="font-size: clamp(18px, 3vw, 28px); color: rgba(255,255,255,0.55); font-weight: 600; letter-spacing: -0.5px;">a commitment to making your college experience<br>actually fun.</h2>
+</div>
+
+<!-- Divider -->
+<div class="section" style="padding: 20px 32px;">
+  <div class="divider reveal"></div>
+</div>
+
+<!-- Section 2: The main plot is overrated -->
+<div class="strikethrough-block">
+  <p class="strike-label reveal">the main plot is overrated.</p>
+  <div class="strike-items reveal reveal-delay-1">
+    <span class="strike-item crossed">class.</span>
+    <span class="strike-item crossed">library.</span>
+    <span class="strike-item crossed">dining hall.</span>
+    <span class="strike-item crossed">repeat.</span>
+  </div>
+  <p class="strike-replace reveal reveal-delay-2">you didn't come to college for this.</p>
+</div>
+
+<!-- Divider -->
+<div class="section" style="padding: 20px 32px;">
+  <div class="divider reveal"></div>
+</div>
+
+<!-- Section 3: What orbit gives you -->
+<div class="section" style="text-align: center; padding-bottom: 60px;">
+  <p class="label reveal">every week, orbit gives you</p>
+  <h2 class="statement-serif reveal reveal-delay-1" style="font-size: clamp(28px, 5vw, 52px); margin-bottom: 56px;">a real adventure, with real people,<br>in the real world.</h2>
+  <div class="pillars reveal reveal-delay-2">
+    <div class="pillar">
+      <div class="pillar-icon">📍</div>
+      <p class="pillar-text">somewhere to go.</p>
+    </div>
+    <div class="pillar">
+      <div class="pillar-icon">⚡</div>
+      <p class="pillar-text">something to do.</p>
+    </div>
+    <div class="pillar">
+      <div class="pillar-icon">✦</div>
+      <p class="pillar-text">people you were always supposed to meet.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Divider -->
+<div class="section" style="padding: 20px 32px;">
+  <div class="divider reveal"></div>
+</div>
+
+<!-- Section 4: The Amazing Race Harvard -->
+<div class="section">
+  <div class="chapter-block reveal">
+    <span class="chapter-tag">chapter one</span>
+    <h2 class="chapter-title">the amazing race harvard.</h2>
+    <p class="statement-serif" style="font-size: clamp(18px, 3vw, 24px); color: var(--muted);">five weeks. fifteen quests. one city.</p>
+    <div class="chapter-stats">
+      <div class="stat">
+        <div class="stat-num">7</div>
+        <div class="stat-label">days per round</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">∞</div>
+        <div class="stat-label">challenges</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">★</div>
+        <div class="stat-label">earn stars to win</div>
+      </div>
+    </div>
+    <p class="statement" style="font-size: clamp(36px, 7vw, 72px); margin-top: 40px; color: rgba(255,255,255,0.9);">go.</p>
+  </div>
+</div>
+
+<!-- Divider -->
+<div class="section" style="padding: 20px 32px;">
+  <div class="divider reveal"></div>
+</div>
+
+<!-- Section 5: The manifesto line -->
+<div class="section" style="text-align: center;">
+  <h2 class="statement-serif reveal" style="font-size: clamp(24px, 4.5vw, 44px); color: var(--off-white); line-height: 1.4;">
+    all college students deserve a side quest.<br>
+    <span style="color: var(--white); font-weight: 600;">yours is waiting.</span>
+  </h2>
+</div>
+
+<!-- Early Access Section -->
+<section class="early-access">
+  <div class="early-access-inner">
+    <div class="early-star reveal">✦</div>
+    <h2 class="early-title reveal reveal-delay-1">get early access.</h2>
+    <p class="early-sub reveal reveal-delay-2">orbit is coming to more campuses.<br>be the first to know when your side quest drops.</p>
+
+    <form class="early-form reveal reveal-delay-3" id="early-form">
+      <input class="early-input" type="text" id="ea-name" placeholder="your name" required>
+      <input class="early-input" type="email" id="ea-email" placeholder="your email" required>
+      <input class="early-input" type="text" id="ea-school" placeholder="your school (optional)">
+      <button class="early-btn" type="submit">get early access ✦</button>
+    </form>
+
+    <div class="early-success" id="early-success">
+      you're on the list. your side quest is coming. ✦
+    </div>
+
+    <p class="early-note reveal">no spam. just adventures.</p>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <a href="/">ORBIT ✦ AMAZING RACE HARVARD</a> &nbsp;·&nbsp; <a href="/signup">join the waitlist</a>
+</footer>
+
+<script>
+  // Video autoplay
+  const vid = document.getElementById('video-bg');
+  if (vid) {
+    vid.play().catch(() => {
+      document.addEventListener('touchstart', () => vid.play(), { once: true });
+      document.addEventListener('click', () => vid.play(), { once: true });
+    });
+  }
+
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Early access form
+  document.getElementById('early-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button');
+    const name = document.getElementById('ea-name').value.trim();
+    const email = document.getElementById('ea-email').value.trim();
+    const school = document.getElementById('ea-school').value.trim();
+
+    btn.textContent = 'adding you...';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/early-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, school })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('early-form').style.display = 'none';
+        document.getElementById('early-success').style.display = 'block';
+      } else {
+        btn.textContent = data.error || 'something went wrong. try again.';
+        btn.disabled = false;
+      }
+    } catch {
+      btn.textContent = 'something went wrong. try again.';
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
