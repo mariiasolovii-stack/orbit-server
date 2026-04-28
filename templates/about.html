@@ -112,29 +112,42 @@
     max-width: 780px;
   }
 
+  /* Hero intro label */
+  .hero-intro {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(11px, 1.3vw, 13px);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.32);
+    margin-bottom: 16px;
+    opacity: 0;
+    animation: fadeUp 0.7s ease forwards 0.2s;
+  }
+
   /* Animated strikethrough line */
   .hero-cross {
     font-family: 'Inter', sans-serif;
-    font-size: clamp(11px, 1.4vw, 14px);
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.28);
-    margin-bottom: 28px;
+    font-size: clamp(22px, 4.5vw, 46px);
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: rgba(255,255,255,0.22);
+    margin-bottom: 32px;
     position: relative;
     display: inline-block;
     opacity: 0;
-    animation: fadeUp 0.8s ease forwards 0.3s;
+    animation: fadeUp 0.8s ease forwards 0.4s;
+    line-height: 1.2;
   }
 
   .hero-cross::after {
     content: '';
     position: absolute;
     left: 0; top: 50%;
-    height: 1px;
-    background: rgba(255,255,255,0.35);
+    height: 2px;
+    background: rgba(255,255,255,0.4);
     width: 0;
-    animation: strikeThrough 0.7s ease forwards 1.2s;
+    animation: strikeThrough 0.65s ease forwards 1.3s;
   }
 
   @keyframes strikeThrough {
@@ -268,53 +281,57 @@
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 48px;
+    margin-bottom: 40px;
   }
 
   .pillars {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 2px;
-    max-width: 820px;
+    gap: 12px;
+    max-width: 860px;
     margin: 0 auto;
   }
 
-  @media (max-width: 600px) { .pillars { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) { .pillars { grid-template-columns: 1fr; } }
 
   .pillar {
-    background: rgba(255,255,255,0.035);
-    border: 1px solid rgba(255,255,255,0.07);
-    padding: 40px 24px 36px;
-    transition: background 0.3s, border-color 0.3s;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 20px;
+    padding: 36px 28px 32px;
+    text-align: left;
+    transition: background 0.3s, border-color 0.3s, transform 0.3s;
+    cursor: default;
   }
   .pillar:hover {
-    background: rgba(255,255,255,0.065);
-    border-color: rgba(255,255,255,0.14);
-  }
-  .pillar:first-child { border-radius: 16px 0 0 16px; }
-  .pillar:last-child  { border-radius: 0 16px 16px 0; }
-
-  @media (max-width: 600px) {
-    .pillar:first-child { border-radius: 16px 16px 0 0; }
-    .pillar:last-child  { border-radius: 0 0 16px 16px; }
-    .pillar:not(:first-child):not(:last-child) { border-radius: 0; }
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.18);
+    transform: translateY(-3px);
   }
 
-  .pillar-num {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 42px;
-    font-weight: 400;
-    color: rgba(255,255,255,0.12);
+  .pillar-icon {
+    font-size: 28px;
+    margin-bottom: 20px;
+    display: block;
     line-height: 1;
-    margin-bottom: 16px;
+  }
+
+  .pillar-heading {
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(18px, 2.2vw, 22px);
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.4px;
+    line-height: 1.2;
+    margin-bottom: 10px;
   }
 
   .pillar-text {
     font-family: 'Cormorant Garamond', serif;
     font-style: italic;
-    font-size: 22px;
-    color: var(--off-white);
-    line-height: 1.4;
+    font-size: 17px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.5;
   }
 
   /* ════════════════════════════════
@@ -593,6 +610,9 @@
   <div class="hero-overlay"></div>
 
   <div class="hero-content">
+    <!-- Intro label -->
+    <p class="hero-intro">you didn't come to college for this.</p>
+
     <!-- Strikethrough line — animates in, then gets struck -->
     <p class="hero-cross">class. library. dining hall. sleep. repeat.</p>
 
@@ -631,19 +651,22 @@
 
 <!-- ══ PILLARS ══ -->
 <section class="pillars-section">
-  <p class="section-label reveal">orbit is</p>
+  <p class="section-label reveal">orbit gives you</p>
   <div class="pillars">
     <div class="pillar reveal d1">
-      <div class="pillar-num">01</div>
-      <p class="pillar-text">somewhere to go.</p>
+      <span class="pillar-icon">📍</span>
+      <div class="pillar-heading">a place to be.</div>
+      <p class="pillar-text">new spots, hidden gems, and reasons to actually leave your room.</p>
     </div>
     <div class="pillar reveal d2">
-      <div class="pillar-num">02</div>
-      <p class="pillar-text">something to do.</p>
+      <span class="pillar-icon">⚡</span>
+      <div class="pillar-heading">a reason to go.</div>
+      <p class="pillar-text">challenges, quests, and adventures that make the story worth telling.</p>
     </div>
     <div class="pillar reveal d3">
-      <div class="pillar-num">03</div>
-      <p class="pillar-text">people you were always supposed to meet.</p>
+      <span class="pillar-icon">✦</span>
+      <div class="pillar-heading">people to go with.</div>
+      <p class="pillar-text">the ones you were always supposed to meet — you just needed an excuse.</p>
     </div>
   </div>
 </section>
