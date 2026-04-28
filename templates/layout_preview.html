@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hero Layout Options ✦</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,400;1,600&family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #050505; font-family: 'Inter', sans-serif; color: #fff; }
+
+  .page-label {
+    text-align: center;
+    padding: 40px 0 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    min-height: 100vh;
+  }
+
+  /* shared hero shell */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 80px 32px;
+    overflow: hidden;
+    border-right: 1px solid rgba(255,255,255,0.06);
+  }
+  .hero:last-child { border-right: none; }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.35;
+    z-index: 0;
+  }
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(5,5,5,0.5) 0%, rgba(5,5,5,0.55) 50%, rgba(5,5,5,1) 100%);
+    z-index: 1;
+  }
+  .hero-content { position: relative; z-index: 2; max-width: 380px; }
+
+  .version-tag {
+    position: absolute;
+    top: 20px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 5px 14px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  /* badges shared */
+  .badges {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 28px;
+  }
+  .badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.38);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 7px 14px;
+    border-radius: 999px;
+  }
+  .badge-live {
+    display: flex; align-items: center; gap: 6px;
+    color: rgba(255,255,255,0.5);
+    border-color: rgba(255,255,255,0.16);
+  }
+  .dot { width: 5px; height: 5px; background: #fff; border-radius: 50%; animation: blink 2s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* ══════════════════════════════
+     VERSION A
+     "you didn't come to college for this."
+     big white strikethrough
+     orbit is your side quest generator.
+     all Inter 900, single size
+  ══════════════════════════════ */
+  .va-intro {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 18px;
+  }
+
+  .va-cross {
+    font-size: clamp(20px, 3.5vw, 32px);
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    margin-bottom: 28px;
+    position: relative;
+    display: inline-block;
+  }
+  .va-cross::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    height: 2px;
+    background: #fff;
+    width: 100%;
+  }
+
+  .va-headline {
+    font-size: clamp(28px, 4.5vw, 44px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -1.5px;
+    line-height: 1.05;
+  }
+
+  .va-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.38);
+    line-height: 1.7;
+    margin-top: 16px;
+    font-weight: 500;
+  }
+
+  /* ══════════════════════════════
+     VERSION B
+     Strikethrough in huge Cormorant italic
+     then Inter 900 headline below
+     more dramatic contrast
+  ══════════════════════════════ */
+  .vb-intro {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 14px;
+  }
+
+  .vb-cross {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(28px, 4.5vw, 46px);
+    font-weight: 400;
+    color: #fff;
+    line-height: 1.2;
+    margin-bottom: 24px;
+    position: relative;
+    display: inline-block;
+  }
+  .vb-cross::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    height: 1.5px;
+    background: #fff;
+    width: 100%;
+  }
+
+  .vb-headline {
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -2px;
+    line-height: 0.95;
+  }
+
+  .vb-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 18px;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.6;
+    margin-top: 18px;
+  }
+
+  /* ══════════════════════════════
+     VERSION C
+     Two-line stacked layout
+     "class. library..." on its own full line, white, big
+     then a visual break (✦)
+     then "orbit is your side quest generator."
+  ══════════════════════════════ */
+  .vc-intro {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 20px;
+  }
+
+  .vc-cross {
+    font-size: clamp(18px, 3vw, 28px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -0.5px;
+    line-height: 1.3;
+    margin-bottom: 20px;
+    position: relative;
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .vc-cross::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    height: 2px;
+    background: rgba(255,255,255,0.7);
+    width: 100%;
+  }
+
+  .vc-divider {
+    font-size: 18px;
+    color: rgba(255,255,255,0.2);
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .vc-headline-top {
+    font-size: clamp(13px, 2vw, 16px);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 8px;
+  }
+
+  .vc-headline {
+    font-size: clamp(34px, 5.5vw, 56px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -2px;
+    line-height: 0.95;
+  }
+
+  .vc-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.35);
+    line-height: 1.7;
+    margin-top: 14px;
+    font-weight: 500;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+</style>
+</head>
+<body>
+
+<p class="page-label">hero layout options — pick one</p>
+
+<div class="grid">
+
+  <!-- ── VERSION A ── -->
+  <div class="hero">
+    <div class="hero-bg" style="background-image: url('/static/bg.mp4'); background-color: #1a1a2e;"></div>
+    <div class="hero-overlay"></div>
+    <div class="version-tag">option A</div>
+    <div class="hero-content">
+      <p class="va-intro">you didn't come to college for this.</p>
+      <p class="va-cross">class. library. dining hall. sleep. repeat.</p>
+      <h1 class="va-headline">orbit is your side quest generator.</h1>
+      <p class="va-sub">real adventures. real people. real world.</p>
+      <div class="badges">
+        <div class="badge">launching fall 2026 ✦</div>
+        <div class="badge badge-live"><div class="dot"></div>early access open</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── VERSION B ── -->
+  <div class="hero">
+    <div class="hero-bg" style="background-color: #0e0e14;"></div>
+    <div class="hero-overlay"></div>
+    <div class="version-tag">option B</div>
+    <div class="hero-content">
+      <p class="vb-intro">you didn't come to college for this.</p>
+      <p class="vb-cross">class. library. dining hall. sleep. repeat.</p>
+      <h1 class="vb-headline">orbit is your<br>side quest<br>generator.</h1>
+      <p class="vb-sub">real adventures, real people, real world.</p>
+      <div class="badges">
+        <div class="badge">launching fall 2026 ✦</div>
+        <div class="badge badge-live"><div class="dot"></div>early access open</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── VERSION C ── -->
+  <div class="hero">
+    <div class="hero-bg" style="background-color: #0a0a0a;"></div>
+    <div class="hero-overlay"></div>
+    <div class="version-tag">option C</div>
+    <div class="hero-content">
+      <p class="vc-intro">you didn't come to college for this.</p>
+      <p class="vc-cross">CLASS. LIBRARY. DINING HALL. SLEEP. REPEAT.</p>
+      <span class="vc-divider">✦</span>
+      <p class="vc-headline-top">orbit is</p>
+      <h1 class="vc-headline">your side quest generator.</h1>
+      <p class="vc-sub">real adventures. real people. real world.</p>
+      <div class="badges">
+        <div class="badge">launching fall 2026 ✦</div>
+        <div class="badge badge-live"><div class="dot"></div>early access open</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
