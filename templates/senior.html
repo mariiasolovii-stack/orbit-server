@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Senior ✦ Amazing Race Harvard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400;1,14..32,700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #000;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, sans-serif;
+    }
+
+    /* ─── Video Background ─── */
+    .video-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .video-bg video {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      min-width: 100%;
+      min-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: cover;
+    }
+
+    /* Layered overlay: dark vignette, lighter in the centre */
+    .video-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.55) 100%),
+        linear-gradient(to bottom, rgba(0,0,0,0.60) 0%, rgba(0,0,0,0.22) 40%, rgba(0,0,0,0.22) 60%, rgba(0,0,0,0.72) 100%);
+    }
+
+    /* ─── Navigation ─── */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 32px;
+      pointer-events: none; /* Allow clicks through to video if needed, but children will override */
+    }
+
+    .nav-link {
+      pointer-events: auto;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      text-decoration: none;
+      transition: color 0.2s, opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover {
+      color: rgba(255,255,255,0.9);
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 20px 20px;
+      }
+      .nav-link {
+        font-size: 9px;
+        letter-spacing: 0.12em;
+      }
+    }
+
+    /* ─── Stage ─── */
+    .stage {
+      position: relative;
+      z-index: 10;
+      width: 100%; height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0 24px;
+      gap: 0;
+    }
+
+    /* ─── Rotating phrase row ─── */
+    .phrase-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0.28em;
+      margin-bottom: 44px;
+      height: 36px;
+      overflow: visible;
+    }
+
+    .phrase-rotating {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: clamp(17px, 2.4vw, 22px);
+      font-weight: 400;
+      color: rgba(255, 230, 180, 0.90);
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .phrase-rotating.out {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+
+    /* 'yet?' animates together with the rotating phrase */
+    .phrase-static {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: clamp(17px, 2.4vw, 22px);
+      font-weight: 400;
+      color: rgba(255, 230, 180, 0.90);
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .phrase-static.out {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+
+    /* ─── "you have" ─── */
+    .label-top {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: clamp(22px, 3.2vw, 38px);
+      font-weight: 600;
+      font-style: italic;
+      letter-spacing: 0.06em;
+      text-transform: lowercase;
+      color: rgba(255,255,255,0.92);
+      text-shadow: 0 2px 20px rgba(0,0,0,0.70);
+      margin-bottom: 8px;
+    }
+
+    /* ─── Countdown ─── */
+    .countdown {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: clamp(8px, 2.5vw, 28px);
+      margin-bottom: 12px;
+    }
+
+    .cd-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .cd-num {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(56px, 12vw, 116px);
+      font-weight: 800;
+      line-height: 1;
+      color: #fff;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cd-lbl {
+      font-size: clamp(8px, 1vw, 10px);
+      font-weight: 500;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.32);
+      margin-top: 7px;
+    }
+
+    .cd-sep {
+      font-size: clamp(44px, 9vw, 88px);
+      font-weight: 200;
+      color: rgba(255,255,255,0.18);
+      line-height: 1;
+      padding-top: 2px;
+      align-self: flex-start;
+      user-select: none;
+    }
+
+    /* ─── "left at Harvard" ─── */
+    .label-bottom {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: clamp(22px, 3.2vw, 38px);
+      font-weight: 600;
+      font-style: italic;
+      letter-spacing: 0.06em;
+      text-transform: lowercase;
+      color: rgba(255,255,255,0.92);
+      text-shadow: 0 2px 20px rgba(0,0,0,0.70);
+      margin-bottom: 48px;
+    }
+
+    /* ─── CTA ─── */
+    .cta-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .cta-btn {
+      display: inline-block;
+      padding: 16px 36px;
+      background: #fff;
+      color: #0a0a0a;
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(13px, 1.5vw, 15px);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-decoration: none;
+      border-radius: 100px;
+      white-space: nowrap;
+      transition: background 0.18s, transform 0.15s, box-shadow 0.18s;
+      box-shadow: 0 2px 28px rgba(0,0,0,0.40);
+    }
+
+    .cta-btn:hover {
+      background: #ede4d4;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 40px rgba(0,0,0,0.50);
+    }
+
+    .cta-tagline {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: clamp(16px, 2.2vw, 22px);
+      font-weight: 400;
+      color: rgba(255,255,255,0.75);
+      letter-spacing: 0.02em;
+      text-shadow: 0 2px 16px rgba(0,0,0,0.60);
+    }
+
+    .cta-tagline-sub {
+      font-size: clamp(16px, 2.2vw, 22px);
+      color: rgba(255,255,255,0.75);
+      margin-top: -6px;
+    }
+
+    .cta-hint {
+      font-size: clamp(10px, 1.1vw, 12px);
+      font-weight: 400;
+      color: rgba(255,255,255,0.28);
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+    }
+
+    /* ─── Footer ─── */
+    .footer {
+      position: fixed;
+      bottom: 22px;
+      left: 0; right: 0;
+      text-align: center;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.16);
+      z-index: 20;
+      text-transform: uppercase;
+    }
+
+    /* ─── Mobile ─── */
+    @media (max-width: 560px) {
+      .cd-sep { display: none; }
+      .countdown { gap: 10px; }
+      .phrase-row { margin-bottom: 32px; height: auto; }
+      .label-bottom { margin-bottom: 36px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Video -->
+  <div class="video-bg" id="video-wrap">
+    <video id="bg-video" autoplay muted loop playsinline preload="auto" webkit-playsinline x5-playsinline>
+      <source src="/static/bg.mp4" type="video/mp4" />
+    </video>
+  </div>
+
+
+  <!-- Navigation -->
+  <header>
+    <a class="nav-link" href="/about">what is orbit ✦?</a>
+    <a class="nav-link" href="/join">join the orbit team ✦</a>
+  </header>
+
+  <!-- Main -->
+  <main class="stage">
+
+    <!-- Rotating phrase -->
+    <div class="phrase-row">
+      <span class="phrase-rotating" id="phrase">swam in the Charles river</span>
+      <span class="phrase-static" id="phrase-yet">yet?</span>
+    </div>
+
+    <!-- you have -->
+    <div class="label-top">you have</div>
+
+    <!-- Countdown -->
+    <div class="countdown">
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-weeks">00</span>
+        <span class="cd-lbl">weeks</span>
+      </div>
+      <div class="cd-sep">·</div>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-days">00</span>
+        <span class="cd-lbl">days</span>
+      </div>
+      <div class="cd-sep">·</div>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-hours">00</span>
+        <span class="cd-lbl">hours</span>
+      </div>
+      <div class="cd-sep">·</div>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-secs">00</span>
+        <span class="cd-lbl">seconds</span>
+      </div>
+    </div>
+
+    <!-- left at Harvard -->
+    <div class="label-bottom">left at Harvard</div>
+
+    <!-- CTA -->
+    <div class="cta-group">
+      <span class="cta-tagline">Seven days. Infinite challenges. Earn stars to win.</span>
+      <span class="cta-tagline cta-tagline-sub">Adventure starts here.</span>
+      <a href="/signup?class=senior" class="cta-btn">Join the Amazing Race Harvard Waitlist ✦</a>
+      <span class="cta-hint">Harvard students only &nbsp;·&nbsp; limited spots</span>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <div class="footer">orbit ✦ amazing race harvard</div>
+
+  <script>
+    // ── Silent autoplay — no prompts, no overlays ──
+    const vid = document.getElementById('bg-video');
+
+    function tryPlay() {
+      vid.muted = true;
+      vid.volume = 0;
+      vid.play().catch(() => {});
+    }
+
+    // Try immediately on load
+    tryPlay();
+
+    // Retry after short delays (iOS Safari sometimes needs a tick)
+    setTimeout(tryPlay, 300);
+    setTimeout(tryPlay, 800);
+
+    // Silently start on ANY first user interaction — no visible prompt
+    const events = ['touchstart','touchend','pointerdown','click','scroll','keydown'];
+    function onFirstInteraction() {
+      tryPlay();
+      events.forEach(e => document.removeEventListener(e, onFirstInteraction));
+    }
+    events.forEach(e => document.addEventListener(e, onFirstInteraction, { passive: true }));
+
+    // ── Countdown to May 28 2026 9:30am EDT (UTC-4) = 13:30 UTC ──
+    const TARGET = new Date('2026-05-28T13:30:00Z').getTime();
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function tick() {
+      const diff = Math.max(0, TARGET - Date.now());
+      const s  = Math.floor(diff / 1000);
+      const m  = Math.floor(s / 60);
+      const h  = Math.floor(m / 60);
+      const d  = Math.floor(h / 24);
+      const w  = Math.floor(d / 7);
+
+      document.getElementById('cd-weeks').textContent = pad(w);
+      document.getElementById('cd-days').textContent  = pad(d % 7);
+      document.getElementById('cd-hours').textContent = pad(h % 24);
+      document.getElementById('cd-secs').textContent  = pad(s % 60);
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    // ── Rotating phrases ──
+    const PHRASES = [
+      'skinny dipped in the Charles',
+      'explore HBS tunnels',
+      'crashed a Harvard Med school function',
+      'watched sunrise from the top of Dunster',
+      'went to Six Flags',
+      'jumped off a bridge into Charles',
+      'explored a cemetery high',
+      'bluebiked on the Esplanade',
+      'stayed overnight in Widener',
+      'rang the Lowell bells hungover',
+      'went to a party in the observatory',
+      'stole a book from Advo',
+      'skinny dipped in the MAC pool',
+      'made pot brownies in the communal kitchen',
+      'made mozz sticks in the Grille kitchen',
+    ];
+
+    let phraseIdx = 0;
+    const phraseEl = document.getElementById('phrase');
+    const yetEl    = document.getElementById('phrase-yet');
+
+    function rotatePhrase() {
+      // Fade both out together
+      phraseEl.classList.add('out');
+      yetEl.classList.add('out');
+      setTimeout(() => {
+        phraseIdx = (phraseIdx + 1) % PHRASES.length;
+        phraseEl.textContent = PHRASES[phraseIdx];
+        // Fade both back in together
+        phraseEl.classList.remove('out');
+        yetEl.classList.remove('out');
+      }, 360);
+    }
+
+    setInterval(rotatePhrase, 1800);
+  </script>
+
+</body>
+</html>

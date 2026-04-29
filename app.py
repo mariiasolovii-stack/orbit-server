@@ -38,12 +38,17 @@ def init_db():
             teammates       JSONB DEFAULT '[]',
             ip_address      TEXT,
             user_agent      TEXT,
-            confirmed       BOOLEAN NOT NULL DEFAULT FALSE
-        )
-    """)
+            confirmed       BOOLEAN NOT NULL DEFAULT FALSE,
+            class_year      TEXT
+        )""") """)
     # Migration: Add teammates column if it doesn't exist
     try:
         cur.execute("ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS teammates JSONB DEFAULT '[]'")
+    except Exception:
+        pass
+    # Migration: Add class_year column if it doesn't exist
+    try:
+        cur.execute("ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS class_year TEXT")
     except Exception:
         pass
     # Add name columns if they don't exist yet (for existing tables)
@@ -197,6 +202,22 @@ def index():
 def signup():
     return render_template('signup.html')
 
+@app.route('/freshmen')
+def freshmen():
+    return render_template('freshmen.html')
+
+@app.route('/sophomore')
+def sophomore():
+    return render_template('sophomore.html')
+
+@app.route('/junior')
+def junior():
+    return render_template('junior.html')
+
+@app.route('/senior')
+def senior():
+    return render_template('senior.html')
+
 @app.route('/thankyou')
 def thankyou():
     return render_template('thankyou.html')
@@ -279,6 +300,7 @@ def api_signup():
     email     = (data.get('email') or '').strip()
     phone     = (data.get('phone') or '').strip()
     team_name = (data.get('team_name') or '').strip()
+    class_year = (data.get('class_year') or '').strip()
     teammates = data.get('teammates') or []
 
     if not name:
@@ -316,11 +338,11 @@ def api_signup():
 
         cur.execute("""
             INSERT INTO waitlist
-              (name, email, phone, team_name, teammates, ip_address, user_agent)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+              (name, email, phone, team_name, teammates, class_year, ip_address, user_agent)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             name, email.lower(), phone, team_name,
-            json.dumps(teammates),
+            json.dumps(teammates), class_year,
             ip_address, user_agent
         ))
         conn.commit()

@@ -369,11 +369,6 @@
 </div>
 
 <script>
-
-  // Get class_year from URL parameter
-  const urlParams = new URLSearchParams(window.location.search);
-  const classYear = urlParams.get('class') || '';
-
   let teammateCount = 0;
   const MAX_TEAMMATES = 9; // Total 10 including captain
 
@@ -513,8 +508,7 @@
       email: val('email'),
       phone: val('phone'),
       team_name: val('team_name'),
-      teammates: teammates,
-      class_year: classYear
+      teammates: teammates
     };
 
     try {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Orbit ✦ Amazing Race Harvard</title>
+  <title>Sophomore ✦ Amazing Race Harvard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400;1,14..32,700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet" />
@@ -98,81 +98,111 @@
       gap: 0;
     }
 
-    /* ─── Modal / Gate ─── */
-    .gate-container {
-      background: rgba(10, 10, 10, 0.92);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      padding: 48px 40px;
-      max-width: 520px;
-      width: 100%;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.60);
-    }
-
-    .gate-title {
+    /* ─── "sophomore year ends in" ─── */
+    .label-top {
       font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: clamp(28px, 4vw, 42px);
+      font-size: clamp(22px, 3.2vw, 38px);
       font-weight: 600;
       font-style: italic;
       letter-spacing: 0.06em;
-      color: rgba(255, 255, 255, 0.95);
-      margin-bottom: 12px;
       text-transform: lowercase;
+      color: rgba(255,255,255,0.92);
+      text-shadow: 0 2px 20px rgba(0,0,0,0.70);
+      margin-bottom: 8px;
     }
 
-    .gate-subtitle {
-      font-size: clamp(14px, 1.8vw, 16px);
-      color: rgba(255, 255, 255, 0.60);
-      margin-bottom: 32px;
-      line-height: 1.6;
+    /* ─── Countdown ─── */
+    .countdown {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: clamp(8px, 2.5vw, 28px);
+      margin-bottom: 12px;
     }
 
-    .gate-options {
+    .cd-unit {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      align-items: center;
     }
 
-    .gate-btn {
-      padding: 16px 24px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      color: rgba(255, 255, 255, 0.90);
+    .cd-num {
       font-family: 'Inter', sans-serif;
-      font-size: clamp(14px, 1.6vw, 16px);
+      font-size: clamp(56px, 12vw, 116px);
+      font-weight: 800;
+      line-height: 1;
+      color: #fff;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cd-lbl {
+      font-size: clamp(8px, 1vw, 10px);
+      font-weight: 500;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.32);
+      margin-top: 7px;
+    }
+
+    .cd-sep {
+      font-size: clamp(44px, 9vw, 88px);
+      font-weight: 200;
+      color: rgba(255,255,255,0.18);
+      line-height: 1;
+      padding-top: 2px;
+      align-self: flex-start;
+      user-select: none;
+    }
+
+    /* ─── "wanna make this week count?" ─── */
+    .label-bottom {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: clamp(22px, 3.2vw, 38px);
       font-weight: 600;
+      font-style: italic;
+      letter-spacing: 0.06em;
+      text-transform: lowercase;
+      color: rgba(255,255,255,0.92);
+      text-shadow: 0 2px 20px rgba(0,0,0,0.70);
+      margin-bottom: 48px;
+    }
+
+    /* ─── CTA ─── */
+    .cta-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .cta-btn {
+      display: inline-block;
+      padding: 16px 36px;
+      background: #fff;
+      color: #0a0a0a;
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(13px, 1.5vw, 15px);
+      font-weight: 700;
       letter-spacing: 0.02em;
-      cursor: pointer;
-      transition: all 0.25s ease;
       text-decoration: none;
-      display: block;
-      text-align: center;
+      border-radius: 100px;
+      white-space: nowrap;
+      transition: background 0.18s, transform 0.15s, box-shadow 0.18s;
+      box-shadow: 0 2px 28px rgba(0,0,0,0.40);
     }
 
-    .gate-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.25);
+    .cta-btn:hover {
+      background: #ede4d4;
       transform: translateY(-2px);
+      box-shadow: 0 6px 40px rgba(0,0,0,0.50);
     }
 
-    .gate-btn.senior {
-      background: rgba(255, 255, 255, 0.10);
-      border-color: rgba(255, 230, 180, 0.30);
-      color: rgba(255, 230, 180, 0.95);
-    }
-
-    .gate-btn.senior:hover {
-      background: rgba(255, 230, 180, 0.15);
-      border-color: rgba(255, 230, 180, 0.50);
-    }
-
-    .gate-footer {
-      margin-top: 24px;
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.32);
-      letter-spacing: 0.08em;
+    .cta-hint {
+      font-size: clamp(10px, 1.1vw, 12px);
+      font-weight: 400;
+      color: rgba(255,255,255,0.28);
+      letter-spacing: 0.10em;
       text-transform: uppercase;
     }
 
@@ -189,13 +219,11 @@
       text-transform: uppercase;
     }
 
+    /* ─── Mobile ─── */
     @media (max-width: 560px) {
-      .gate-container {
-        padding: 36px 24px;
-      }
-      .gate-title {
-        font-size: 28px;
-      }
+      .cd-sep { display: none; }
+      .countdown { gap: 10px; }
+      .label-bottom { margin-bottom: 36px; }
     }
   </style>
 </head>
@@ -216,19 +244,42 @@
 
   <!-- Main -->
   <main class="stage">
-    <div class="gate-container">
-      <h1 class="gate-title">what year are you?</h1>
-      <p class="gate-subtitle">choose your class to see your countdown.</p>
-      
-      <div class="gate-options">
-        <a href="/freshmen" class="gate-btn">Freshman</a>
-        <a href="/sophomore" class="gate-btn">Sophomore</a>
-        <a href="/junior" class="gate-btn">Junior</a>
-        <a href="/senior" class="gate-btn senior">Senior</a>
-      </div>
 
-      <div class="gate-footer">orbit ✦ amazing race harvard</div>
+    <!-- sophomore year ends in -->
+    <div class="label-top">sophomore year ends in</div>
+
+    <!-- Countdown -->
+    <div class="countdown">
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-weeks">00</span>
+        <span class="cd-lbl">weeks</span>
+      </div>
+      <div class="cd-sep">·</div>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-days">00</span>
+        <span class="cd-lbl">days</span>
+      </div>
+      <div class="cd-sep">·</div>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-hours">00</span>
+        <span class="cd-lbl">hours</span>
+      </div>
+      <div class="cd-sep">·</div>
+      <div class="cd-unit">
+        <span class="cd-num" id="cd-secs">00</span>
+        <span class="cd-lbl">seconds</span>
+      </div>
     </div>
+
+    <!-- wanna make this week count? -->
+    <div class="label-bottom">wanna make this week count?</div>
+
+    <!-- CTA -->
+    <div class="cta-group">
+      <a href="/signup?class=sophomore" class="cta-btn">Join the Amazing Race Harvard Waitlist ✦</a>
+      <span class="cta-hint">Harvard students only &nbsp;·&nbsp; limited spots</span>
+    </div>
+
   </main>
 
   <!-- Footer -->
@@ -253,6 +304,27 @@
       events.forEach(e => document.removeEventListener(e, onFirstInteraction));
     }
     events.forEach(e => document.addEventListener(e, onFirstInteraction, { passive: true }));
+
+    // ── Countdown to May 16 2026 9:00am EDT (UTC-4) = 13:00 UTC ──
+    const TARGET = new Date('2026-05-16T13:00:00Z').getTime();
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function tick() {
+      const diff = Math.max(0, TARGET - Date.now());
+      const s  = Math.floor(diff / 1000);
+      const m  = Math.floor(s / 60);
+      const h  = Math.floor(m / 60);
+      const d  = Math.floor(h / 24);
+      const w  = Math.floor(d / 7);
+
+      document.getElementById('cd-weeks').textContent = pad(w);
+      document.getElementById('cd-days').textContent  = pad(d % 7);
+      document.getElementById('cd-hours').textContent = pad(h % 24);
+      document.getElementById('cd-secs').textContent  = pad(s % 60);
+    }
+    tick();
+    setInterval(tick, 1000);
   </script>
 
 </body>
