@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import re
 import logging
@@ -40,7 +41,7 @@ def init_db():
             user_agent      TEXT,
             confirmed       BOOLEAN NOT NULL DEFAULT FALSE,
             class_year      TEXT
-        )""") """)
+        )""")
     # Migration: Add teammates column if it doesn't exist
     try:
         cur.execute("ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS teammates JSONB DEFAULT '[]'")
@@ -114,17 +115,17 @@ def send_confirmation_email(to_email, name, team_name):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>You&#39;re on the waitlist</title>
+<title>Waitlist Confirmed</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f4f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4;padding:40px 0">
 <tr><td align="center">
 <table width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
   <tr><td style="background-color:#0a0a0a;padding:32px 40px">
-    <p style="margin:0;font-size:14px;font-weight:700;letter-spacing:0.1em;color:rgba(255,255,255,0.6);text-transform:uppercase">ORBIT &#10022; AMAZING RACE HARVARD</p>
+    <p style="margin:0;font-size:14px;font-weight:700;letter-spacing:0.1em;color:rgba(255,255,255,0.6);text-transform:uppercase">ORBIT AMAZING RACE HARVARD</p>
   </td></tr>
   <tr><td style="padding:40px">
-    <h1 style="margin:0 0 16px;font-size:26px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px">you&#39;re on the waitlist.</h1>
+    <h1 style="margin:0 0 16px;font-size:26px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px">you are on the waitlist.</h1>
     <p style="margin:0 0 12px;font-size:16px;color:#444;line-height:1.7">hey """ + name + """ &mdash; your team <strong style="color:#0a0a0a">""" + team_name + """</strong> is locked in.</p>
     <p style="margin:0 0 12px;font-size:16px;color:#444;line-height:1.7">your side quest drops soon. seven days, infinite challenges, earn stars to win.</p>
     <p style="margin:0 0 32px;font-size:16px;color:#444;line-height:1.7">stay close.</p>
@@ -135,7 +136,7 @@ def send_confirmation_email(to_email, name, team_name):
     </table>
   </td></tr>
   <tr><td style="padding:24px 40px;border-top:1px solid #f0f0f0">
-    <p style="margin:0;font-size:12px;color:#aaa">&#10022; orbit &middot; amazing race harvard &middot; <a href="https://joinorbit.one" style="color:#aaa">joinorbit.one</a></p>
+    <p style="margin:0;font-size:12px;color:#aaa">orbit &middot; amazing race harvard &middot; <a href="https://joinorbit.one" style="color:#aaa">joinorbit.one</a></p>
   </td></tr>
 </table>
 </td></tr>
@@ -143,15 +144,15 @@ def send_confirmation_email(to_email, name, team_name):
 </body>
 </html>"""
 
-    text_body = f"""orbit ✦
+    text_body = f"""orbit *
 
-you&#39;re on the waitlist.
+you are on the waitlist.
 
-hey {name} — your team "{team_name}" is locked in.
+hey {name} - your team "{team_name}" is locked in.
 your side quest drops soon.
 stay close.
 
-✦ orbit · amazing race harvard
+* orbit . amazing race harvard
 """
 
     payload = {
