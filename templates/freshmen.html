@@ -98,7 +98,50 @@
       gap: 0;
     }
 
-    /* ─── "freshman year is over in" ─── */
+    /* ─── Rotating phrase row ─── */
+    .phrase-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0.28em;
+      margin-bottom: 44px;
+      height: 36px;
+      overflow: visible;
+    }
+
+    .phrase-rotating {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: clamp(17px, 2.4vw, 22px);
+      font-weight: 400;
+      color: rgba(255, 230, 180, 0.90);
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .phrase-rotating.out {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+
+    .phrase-static {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-size: clamp(17px, 2.4vw, 22px);
+      font-weight: 400;
+      color: rgba(255, 230, 180, 0.90);
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .phrase-static.out {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+
+    /* ─── "freshman year ends in" ─── */
     .label-top {
       font-family: 'Cormorant Garamond', Georgia, serif;
       font-size: clamp(22px, 3.2vw, 38px);
@@ -255,8 +298,14 @@
   <!-- Main -->
   <main class="stage">
 
-    <!-- freshman year is over in -->
-    <div class="label-top">freshman year is over in</div>
+    <!-- Rotating phrase -->
+    <div class="phrase-row">
+      <span class="phrase-rotating" id="phrase">skinny dipped in the Charles</span>
+      <span class="phrase-static" id="phrase-yet">yet?</span>
+    </div>
+
+    <!-- freshman year ends in -->
+    <div class="label-top">freshman year ends in</div>
 
     <!-- Countdown -->
     <div class="countdown">
@@ -281,8 +330,8 @@
       </div>
     </div>
 
-    <!-- ready to make it count? -->
-    <div class="label-bottom">ready to make it count?</div>
+    <!-- ready to make the last week count? -->
+    <div class="label-bottom">ready to make the last week count?</div>
 
     <!-- CTA -->
     <div class="cta-group">
@@ -335,6 +384,44 @@
     }
     tick();
     setInterval(tick, 1000);
+
+    // ── Rotating phrases ──
+    const PHRASES = [
+      'skinny dipped in the Charles',
+      'explore HBS tunnels',
+      'crashed a Harvard Med school function',
+      'watched sunrise from the top of Dunster',
+      'went to Six Flags',
+      'jumped off a bridge into Charles',
+      'explored a cemetery high',
+      'bluebiked on the Esplanade',
+      'stayed overnight in Widener',
+      'rang the Lowell bells hungover',
+      'went to a party in the observatory',
+      'stole a book from Advo',
+      'skinny dipped in the MAC pool',
+      'made pot brownies in the communal kitchen',
+      'made mozz sticks in the Grille kitchen',
+    ];
+
+    let phraseIdx = 0;
+    const phraseEl = document.getElementById('phrase');
+    const yetEl    = document.getElementById('phrase-yet');
+
+    function rotatePhrase() {
+      // Fade both out together
+      phraseEl.classList.add('out');
+      yetEl.classList.add('out');
+      setTimeout(() => {
+        phraseIdx = (phraseIdx + 1) % PHRASES.length;
+        phraseEl.textContent = PHRASES[phraseIdx];
+        // Fade both back in together
+        phraseEl.classList.remove('out');
+        yetEl.classList.remove('out');
+      }, 360);
+    }
+
+    setInterval(rotatePhrase, 1800);
   </script>
 
 </body>
