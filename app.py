@@ -188,7 +188,8 @@ def is_harvard_email(email):
     if not email:
         return False
     lower = email.lower().strip()
-    return any(lower.endswith(d) for d in HARVARD_DOMAINS)
+    # Relaxed: any .harvard.edu address is fine
+    return lower.endswith('.harvard.edu') or lower.endswith('@harvard.edu')
 
 # Routes
 @app.route('/')
@@ -280,7 +281,7 @@ def api_signup():
     phone     = (data.get('phone') or '').strip()
     team_name = (data.get('team_name') or '').strip()
     t1_name   = (data.get('t1_name') or '').strip() or None
-    t1_email  = (data.get('t1_email') or '').strip()
+    t1_email  = (data.get('t1_email') or '').strip() or None
     t1_phone  = (data.get('t1_phone') or '').strip() or None
     t2_name   = (data.get('t2_name') or '').strip() or None
     t2_email  = (data.get('t2_email') or '').strip() or None
@@ -299,10 +300,8 @@ def api_signup():
         return jsonify({'success': False, 'error': 'Please enter a valid phone number (at least 10 digits).'}), 400
     if not team_name:
         return jsonify({'success': False, 'error': 'Team name is required.'}), 400
-    if not t1_name:
-        return jsonify({'success': False, 'error': 'Teammate 1 full name is required.'}), 400
-    if not is_harvard_email(t1_email):
-        return jsonify({'success': False, 'error': 'Teammate 1 must have a Harvard email.'}), 400
+    if t1_email and not is_harvard_email(t1_email):
+        return jsonify({'success': False, 'error': 'Teammate 1 must have a Harvard email if provided.'}), 400
     if t2_email and not is_harvard_email(t2_email):
         return jsonify({'success': False, 'error': 'Teammate 2 must have a Harvard email if provided.'}), 400
     if t3_email and not is_harvard_email(t3_email):

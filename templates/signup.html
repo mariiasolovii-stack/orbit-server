@@ -282,9 +282,9 @@
 
   <div class="card">
     <h1 class="card-title">Enter the Race ✦</h1>
-    <p class="card-sub">Secure your spot on the waitlist. One team, up to four people. Harvard emails only.</p>
+    <p class="card-sub">Secure your spot on the waitlist. One team, up to four people. You can sign up solo now and add teammates later. Harvard emails only.</p>
     <div class="hear-back-box">
-      ✦ &nbsp;you'll hear back by <strong style="color:rgba(255,255,255,0.90);">Thursday, April 30</strong>
+      ✦ &nbsp;you'll hear back by <strong style="color:rgba(255,255,255,0.90);">Wednesday, May 7</strong>
     </div>
 
     <form id="signup-form" novalidate>
@@ -319,24 +319,22 @@
         <div class="field-error" id="team_name-error">Please enter a team name.</div>
       </div>
 
-      <!-- Teammate 1 (required) -->
+      <!-- Teammate 1 (optional) -->
       <div class="teammate-block">
-        <div class="teammate-title">Teammate 1</div>
+        <div class="teammate-title">Teammate 1 <span class="optional-badge">optional</span></div>
         <div class="field">
           <label for="t1_name">Full Name</label>
-          <input type="text" id="t1_name" name="t1_name" placeholder="Teammate's full name" required>
-          <div class="field-error" id="t1_name-error">Please enter their name.</div>
+          <input type="text" id="t1_name" name="t1_name" placeholder="Teammate's full name">
         </div>
         <div class="teammate-row">
           <div class="field">
             <label for="t1_email">Email</label>
-            <input type="email" id="t1_email" name="t1_email" placeholder="teammate@college.harvard.edu" required>
-            <div class="field-error" id="t1_email-error">Must be a Harvard email.</div>
+            <input type="email" id="t1_email" name="t1_email" placeholder="teammate@college.harvard.edu">
+            <div class="field-error" id="t1_email-error">Must be a Harvard email if provided.</div>
           </div>
           <div class="field">
             <label for="t1_phone">Phone</label>
             <input type="tel" id="t1_phone" name="t1_phone" placeholder="6170000000">
-            <div class="field-error" id="t1_phone-error">Required.</div>
           </div>
         </div>
       </div>
@@ -391,12 +389,11 @@
 </div>
 
 <script>
-  const HARVARD_DOMAINS = ['@college.harvard.edu', '@harvard.edu'];
-
   function isHarvardEmail(val) {
     if (!val) return false;
     const lower = val.toLowerCase().trim();
-    return HARVARD_DOMAINS.some(d => lower.endsWith(d));
+    // Relaxed: any .harvard.edu address is fine
+    return lower.endsWith('.harvard.edu') || lower.endsWith('@harvard.edu');
   }
 
   // Accept any phone format: 10 digits, +1xxxxxxxxxx, (xxx) xxx-xxxx, etc.
@@ -441,10 +438,11 @@
     // Team name
     if (!val('team_name')) { showError('team_name', true); valid = false; } else showError('team_name', false);
 
-    // Teammate 1 (required)
-    if (!val('t1_name')) { showError('t1_name', true); valid = false; } else showError('t1_name', false);
-    if (!isHarvardEmail(val('t1_email'))) { showError('t1_email', true); valid = false; } else showError('t1_email', false);
-    // t1 phone optional — no validation required
+    // Teammate 1 (optional)
+    const t1email = val('t1_email');
+    if (t1email && !isHarvardEmail(t1email)) { showError('t1_email', true); valid = false; } else showError('t1_email', false);
+    else showError('t1_email', false);
+    showError('t1_name', false);
 
     // Teammate 2 (optional but if email provided must be Harvard)
     const t2email = val('t2_email');
