@@ -12,7 +12,7 @@
 
   html, body {
     min-height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: #0a0a0a;
     color: #fff;
   }
@@ -188,6 +188,13 @@
     border-radius: 14px;
     padding: 20px;
     margin-bottom: 12px;
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .teammate-title {
@@ -197,7 +204,20 @@
     text-transform: uppercase;
     color: rgba(255,255,255,0.4);
     margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
+
+  .remove-teammate {
+    font-size: 10px;
+    color: rgba(255,77,77,0.6);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .remove-teammate:hover { color: #ff4d4d; }
 
   .teammate-row {
     display: grid;
@@ -205,17 +225,29 @@
     gap: 12px;
   }
 
-  .optional-badge {
-    display: inline-block;
-    font-size: 9px;
-    letter-spacing: 0.08em;
+  /* ── Add Teammate Button ── */
+  .add-teammate-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px dashed rgba(255,255,255,0.2);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.6);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 12px;
+  }
+
+  .add-teammate-btn:hover {
     background: rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.3);
-    padding: 2px 7px;
-    border-radius: 999px;
-    margin-left: 6px;
-    vertical-align: middle;
-    text-transform: uppercase;
+    border-color: rgba(255,255,255,0.4);
+    color: #fff;
   }
 
   /* ── Submit ── */
@@ -282,7 +314,7 @@
 
   <div class="card">
     <h1 class="card-title">Enter the Race ✦</h1>
-    <p class="card-sub">Secure your spot on the waitlist. One team, up to four people. You can sign up solo now and add teammates later. Harvard emails only.</p>
+    <p class="card-sub">Secure your spot on the waitlist. Teams of 2–6. You can sign up solo now and add teammates later. Harvard emails only.</p>
     <div class="hear-back-box">
       ✦ &nbsp;you'll hear back by <strong style="color:rgba(255,255,255,0.90);">Wednesday, May 7</strong>
     </div>
@@ -301,12 +333,12 @@
       <div class="field">
         <label for="email">Harvard Email</label>
         <input type="email" id="email" name="email" placeholder="you@college.harvard.edu" required>
-        <div class="field-error" id="email-error">Must be a @college.harvard.edu or @harvard.edu address.</div>
+        <div class="field-error" id="email-error">Must be a Harvard email address.</div>
       </div>
 
       <div class="field">
         <label for="phone">Phone Number</label>
-        <input type="tel" id="phone" name="phone" placeholder="6170000000 or +16170000000" required>
+        <input type="tel" id="phone" name="phone" placeholder="6170000000" required>
         <div class="field-error" id="phone-error">Please enter your phone number.</div>
       </div>
 
@@ -319,65 +351,13 @@
         <div class="field-error" id="team_name-error">Please enter a team name.</div>
       </div>
 
-      <!-- Teammate 1 (optional) -->
-      <div class="teammate-block">
-        <div class="teammate-title">Teammate 1 <span class="optional-badge">optional</span></div>
-        <div class="field">
-          <label for="t1_name">Full Name</label>
-          <input type="text" id="t1_name" name="t1_name" placeholder="Teammate's full name">
-        </div>
-        <div class="teammate-row">
-          <div class="field">
-            <label for="t1_email">Email</label>
-            <input type="email" id="t1_email" name="t1_email" placeholder="teammate@college.harvard.edu">
-            <div class="field-error" id="t1_email-error">Must be a Harvard email if provided.</div>
-          </div>
-          <div class="field">
-            <label for="t1_phone">Phone</label>
-            <input type="tel" id="t1_phone" name="t1_phone" placeholder="6170000000">
-          </div>
-        </div>
+      <div id="teammates-container">
+        <!-- Dynamic teammates will be added here -->
       </div>
 
-      <!-- Teammate 2 (optional) -->
-      <div class="teammate-block">
-        <div class="teammate-title">Teammate 2 <span class="optional-badge">optional</span></div>
-        <div class="field">
-          <label for="t2_name">Full Name</label>
-          <input type="text" id="t2_name" name="t2_name" placeholder="Teammate's full name">
-        </div>
-        <div class="teammate-row">
-          <div class="field">
-            <label for="t2_email">Email</label>
-            <input type="email" id="t2_email" name="t2_email" placeholder="teammate@college.harvard.edu">
-            <div class="field-error" id="t2_email-error">Must be a Harvard email if provided.</div>
-          </div>
-          <div class="field">
-            <label for="t2_phone">Phone</label>
-            <input type="tel" id="t2_phone" name="t2_phone" placeholder="6170000000">
-          </div>
-        </div>
-      </div>
-
-      <!-- Teammate 3 (optional) -->
-      <div class="teammate-block">
-        <div class="teammate-title">Teammate 3 <span class="optional-badge">optional</span></div>
-        <div class="field">
-          <label for="t3_name">Full Name</label>
-          <input type="text" id="t3_name" name="t3_name" placeholder="Teammate's full name">
-        </div>
-        <div class="teammate-row">
-          <div class="field">
-            <label for="t3_email">Email</label>
-            <input type="email" id="t3_email" name="t3_email" placeholder="teammate@college.harvard.edu">
-            <div class="field-error" id="t3_email-error">Must be a Harvard email if provided.</div>
-          </div>
-          <div class="field">
-            <label for="t3_phone">Phone</label>
-            <input type="tel" id="t3_phone" name="t3_phone" placeholder="6170000000">
-          </div>
-        </div>
-      </div>
+      <button type="button" class="add-teammate-btn" id="add-teammate-btn">
+        <span>+ Add Teammate (Optional)</span>
+      </button>
 
       <button type="submit" class="submit-btn" id="submit-btn">Join the Waitlist ✦</button>
       <div class="global-error" id="global-error"></div>
@@ -389,15 +369,15 @@
 </div>
 
 <script>
+  let teammateCount = 0;
+  const MAX_TEAMMATES = 9; // Total 10 including captain
+
   function isHarvardEmail(val) {
     if (!val) return false;
     const lower = val.toLowerCase().trim();
-    // Relaxed: any .harvard.edu address is fine
     return lower.endsWith('.harvard.edu') || lower.endsWith('@harvard.edu');
   }
 
-  // Accept any phone format: 10 digits, +1xxxxxxxxxx, (xxx) xxx-xxxx, etc.
-  // Just strip non-digits and check there are at least 10 digits
   function isValidPhone(val) {
     if (!val) return false;
     const digits = val.replace(/\D/g, '');
@@ -422,35 +402,100 @@
     return el ? el.value.trim() : '';
   }
 
+  function addTeammate() {
+    if (teammateCount >= MAX_TEAMMATES) return;
+    teammateCount++;
+    
+    const container = document.getElementById('teammates-container');
+    const block = document.createElement('div');
+    block.className = 'teammate-block';
+    block.id = `teammate-${teammateCount}`;
+    
+    block.innerHTML = `
+      <div class="teammate-title">
+        Teammate ${teammateCount}
+        <span class="remove-teammate" onclick="removeTeammate(${teammateCount})">Remove</span>
+      </div>
+      <div class="field">
+        <label>Full Name</label>
+        <input type="text" class="tm-name" placeholder="Teammate's full name">
+      </div>
+      <div class="teammate-row">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" class="tm-email" placeholder="teammate@college.harvard.edu">
+          <div class="field-error">Must be a Harvard email.</div>
+        </div>
+        <div class="field">
+          <label>Phone</label>
+          <input type="tel" class="tm-phone" placeholder="6170000000">
+        </div>
+      </div>
+    `;
+    
+    container.appendChild(block);
+    
+    if (teammateCount >= MAX_TEAMMATES) {
+      document.getElementById('add-teammate-btn').style.display = 'none';
+    }
+  }
+
+  function removeTeammate(id) {
+    const block = document.getElementById(`teammate-${id}`);
+    if (block) {
+      block.remove();
+      teammateCount--;
+      document.getElementById('add-teammate-btn').style.display = 'flex';
+      
+      // Re-index remaining teammates
+      const blocks = document.querySelectorAll('.teammate-block');
+      teammateCount = 0;
+      blocks.forEach((b, i) => {
+        teammateCount++;
+        b.id = `teammate-${teammateCount}`;
+        b.querySelector('.teammate-title').innerHTML = `
+          Teammate ${teammateCount}
+          <span class="remove-teammate" onclick="removeTeammate(${teammateCount})">Remove</span>
+        `;
+      });
+    }
+  }
+
+  document.getElementById('add-teammate-btn').addEventListener('click', addTeammate);
+
   document.getElementById('signup-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     let valid = true;
 
-    // Name
+    // Captain Info
     if (!val('name')) { showError('name', true); valid = false; } else showError('name', false);
-
-    // Email
     if (!isHarvardEmail(val('email'))) { showError('email', true); valid = false; } else showError('email', false);
-
-    // Phone (flexible)
     if (!isValidPhone(val('phone'))) { showError('phone', true); valid = false; } else showError('phone', false);
-
-    // Team name
     if (!val('team_name')) { showError('team_name', true); valid = false; } else showError('team_name', false);
 
-    // Teammate 1 (optional)
-    const t1email = val('t1_email');
-    if (t1email && !isHarvardEmail(t1email)) { showError('t1_email', true); valid = false; } else showError('t1_email', false);
-    else showError('t1_email', false);
-    showError('t1_name', false);
+    // Dynamic Teammates
+    const teammates = [];
+    const blocks = document.querySelectorAll('.teammate-block');
+    blocks.forEach(block => {
+      const tmName = block.querySelector('.tm-name').value.trim();
+      const tmEmail = block.querySelector('.tm-email').value.trim();
+      const tmPhone = block.querySelector('.tm-phone').value.trim();
+      const emailErr = block.querySelector('.field-error');
+      const emailInput = block.querySelector('.tm-email');
 
-    // Teammate 2 (optional but if email provided must be Harvard)
-    const t2email = val('t2_email');
-    if (t2email && !isHarvardEmail(t2email)) { showError('t2_email', true); valid = false; } else showError('t2_email', false);
+      if (tmEmail && !isHarvardEmail(tmEmail)) {
+        emailInput.classList.add('error');
+        emailErr.classList.add('show');
+        valid = false;
+      } else {
+        emailInput.classList.remove('error');
+        emailErr.classList.remove('show');
+      }
 
-    // Teammate 3 (optional but if email provided must be Harvard)
-    const t3email = val('t3_email');
-    if (t3email && !isHarvardEmail(t3email)) { showError('t3_email', true); valid = false; } else showError('t3_email', false);
+      if (tmName || tmEmail || tmPhone) {
+        teammates.push({ name: tmName, email: tmEmail, phone: tmPhone });
+      }
+    });
 
     if (!valid) return;
 
@@ -463,15 +508,7 @@
       email: val('email'),
       phone: val('phone'),
       team_name: val('team_name'),
-      t1_name: val('t1_name'),
-      t1_email: val('t1_email'),
-      t1_phone: val('t1_phone') || null,
-      t2_name: val('t2_name') || null,
-      t2_email: val('t2_email') || null,
-      t2_phone: val('t2_phone') || null,
-      t3_name: val('t3_name') || null,
-      t3_email: val('t3_email') || null,
-      t3_phone: val('t3_phone') || null,
+      teammates: teammates
     };
 
     try {
