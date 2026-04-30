@@ -40,7 +40,8 @@ def init_db():
             ip_address      TEXT,
             user_agent      TEXT,
             confirmed       BOOLEAN NOT NULL DEFAULT FALSE,
-            class_year      TEXT
+            class_year      TEXT,
+            team_secret_code TEXT
         )""")
     # Migration: Add teammates column if it doesn't exist
     try:
@@ -50,6 +51,11 @@ def init_db():
     # Migration: Add class_year column if it doesn't exist
     try:
         cur.execute("ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS class_year TEXT")
+    except Exception:
+        pass
+    # Migration: Add team_secret_code column if it doesn't exist
+    try:
+        cur.execute("ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS team_secret_code TEXT")
     except Exception:
         pass
     # Add name columns if they don't exist yet (for existing tables)
@@ -91,6 +97,25 @@ def init_db():
             email       TEXT UNIQUE NOT NULL,
             pitch       TEXT NOT NULL,
             ip_address  TEXT
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS quests (
+            id          SERIAL PRIMARY KEY,
+            name        TEXT NOT NULL,
+            description TEXT NOT NULL,
+            stars       INTEGER NOT NULL,
+            class_year  TEXT
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS quest_completions (
+            id          SERIAL PRIMARY KEY,
+            team_name   TEXT NOT NULL,
+            quest_id    INTEGER REFERENCES quests(id),
+            photo_url   TEXT,
+            status      TEXT NOT NULL DEFAULT 'pending',
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     """)
     conn.commit()
@@ -195,6 +220,10 @@ def is_harvard_email(email):
     return lower.endswith('.harvard.edu') or lower.endswith('@harvard.edu')
 
 # Routes
+@app.route('/welcome')
+def welcome():
+    return render_template('welcome.html')
+
 @app.route('/')
 def index():
     return render_template('index.html')
