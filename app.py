@@ -4,16 +4,25 @@ import re
 import logging
 import threading
 import time
+import random
+import string
 import requests as http_requests
 from datetime import datetime
+from werkzeug.utils import secure_filename
 
 import psycopg2
 import psycopg2.extras
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, redirect, url_for
 
 application = Flask(__name__, template_folder='templates', static_folder='static')
 app = application
 logging.basicConfig(level=logging.INFO)
+
+# Configuration
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov', 'webm'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 with app.app_context():
     init_db()
@@ -23,6 +32,12 @@ DATABASE_URL = os.environ.get(
     'DATABASE_URL',
     'postgresql://neondb_owner:npg_y8dGAPgVKr0z@ep-green-glitter-an853t8z.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require'
 )
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def generate_secret_code(length=6):
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
 def get_db():
     conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
@@ -267,6 +282,212 @@ def about():
 def join():
     return render_template('join.html')
 
+@app.route('/team/<team_name>')
+def team_portal(team_name):
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        
+        # Get team info
+        cur.execute("SELECT name, teammates, class_year FROM waitlist WHERE team_name = %s", (team_name,))
+        team = cur.fetchone()
+        if not team:
+            cur.close()
+            conn.close()
+            return "Team not found", 404
+            
+        members = [team['name']]
+        if team['teammates']:
+            for tm in team['teammates']:
+                if tm.get('name'):
+                    members.append(tm['name'])
+        
+        # Get completions
+        cur.execute("""
+            SELECT qc.*, q.name as quest_name, q.stars 
+            FROM quest_completions qc
+            JOIN quests q ON qc.quest_id = q.id
+            WHERE qc.team_name = %s AND qc.status = 'approved'
+            ORDER BY qc.created_at DESC
+        """, (team_name,))
+        completions = cur.fetchall()
+        
+        total_stars = sum(c['stars'] for c in completions)
+        
+        cur.close()
+        conn.close()
+        
+        return render_template('team_portal.html', 
+                             team_name=team_name, 
+                             members=members, 
+                             member_count=len(members),
+                             completions=completions,
+                             completed_count=len(completions),
+                             total_stars=total_stars)
+    except Exception as e:
+        logging.error(f"Team portal error: {e}")
+        return "Internal server error", 500
+
+@app.route('/submit')
+def submit_quest():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT id, name, stars FROM quests ORDER BY stars ASC")
+        quests = cur.fetchall()
+        cur.close()
+        conn.close()
+        return render_template('submit_quest.html', quests=quests)
+    except Exception as e:
+        logging.error(f"Submit quest page error: {e}")
+        return "Internal server error", 500
+
+@app.route('/leaderboard')
+def leaderboard():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        
+        # Get all teams and their stars
+        cur.execute("""
+            SELECT w.team_name, w.class_year, COALESCE(SUM(q.stars), 0) as total_stars
+            FROM waitlist w
+            LEFT JOIN quest_completions qc ON w.team_name = qc.team_name AND qc.status = 'approved'
+            LEFT JOIN quests q ON qc.quest_id = q.id
+            GROUP BY w.team_name, w.class_year
+            ORDER BY total_stars DESC, w.team_name ASC
+        """)
+        leaderboard_data = cur.fetchall()
+        
+        # Class breakdown
+        class_breakdown = {}
+        for row in leaderboard_data:
+            cy = row['class_year'] or 'unknown'
+            class_breakdown[cy] = class_breakdown.get(cy, 0) + row['total_stars']
+            
+        winning_class = max(class_breakdown, key=class_breakdown.get) if class_breakdown else None
+        
+        cur.close()
+        conn.close()
+        
+        return render_template('leaderboard.html', 
+                             leaderboard=leaderboard_data,
+                             class_breakdown=class_breakdown,
+                             winning_class=winning_class)
+    except Exception as e:
+        logging.error(f"Leaderboard error: {e}")
+        return "Internal server error", 500
+
+@app.route('/admin/quests')
+def admin_quests():
+    secret = request.args.get('secret', '')
+    admin_secret = os.environ.get('ADMIN_SECRET', '')
+    if admin_secret and secret != admin_secret:
+        return "Unauthorized", 401
+        
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT qc.*, q.name as quest_name, q.stars 
+            FROM quest_completions qc
+            JOIN quests q ON qc.quest_id = q.id
+            ORDER BY qc.created_at DESC
+        """)
+        submissions = cur.fetchall()
+        
+        cur.execute("SELECT COUNT(*) FROM quest_completions WHERE status = 'pending'")
+        pending_count = cur.fetchone()['count']
+        
+        cur.execute("SELECT COUNT(*) FROM quest_completions WHERE status = 'approved'")
+        approved_count = cur.fetchone()['count']
+        
+        cur.execute("SELECT COUNT(DISTINCT team_name) FROM waitlist")
+        total_teams = cur.fetchone()['count']
+        
+        cur.close()
+        conn.close()
+        
+        return render_template('admin_quests.html', 
+                             submissions=submissions,
+                             pending_count=pending_count,
+                             approved_count=approved_count,
+                             total_teams=total_teams)
+    except Exception as e:
+        logging.error(f"Admin quests error: {e}")
+        return "Internal server error", 500
+
+@app.route('/api/submit-quest', methods=['POST'])
+def api_submit_quest():
+    team_name = request.form.get('team_name', '').strip()
+    secret_code = request.form.get('secret_code', '').strip()
+    quest_id = request.form.get('quest_id')
+    file = request.files.get('evidence')
+    
+    if not all([team_name, secret_code, quest_id, file]):
+        return jsonify({'success': False, 'error': 'All fields are required.'}), 400
+        
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        
+        # Verify team and secret code
+        cur.execute("SELECT id FROM waitlist WHERE team_name = %s AND team_secret_code = %s", (team_name, secret_code))
+        if not cur.fetchone():
+            cur.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Invalid team name or secret code.'}), 401
+            
+        # Save file
+        if file and allowed_file(file.filename):
+            filename = secure_filename(f"{team_name}_{quest_id}_{int(time.time())}_{file.filename}")
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            photo_url = f"/static/uploads/{filename}"
+            
+            # Insert completion
+            cur.execute("""
+                INSERT INTO quest_completions (team_name, quest_id, photo_url, status)
+                VALUES (%s, %s, %s, 'pending')
+            """, (team_name, quest_id, photo_url))
+            
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            # Notify admin (placeholder for now)
+            logging.info(f"New quest submission from team {team_name}")
+            
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Invalid file type.'}), 400
+            
+    except Exception as e:
+        logging.error(f"Submit quest API error: {e}")
+        return jsonify({'success': False, 'error': 'Database error.'}), 500
+
+@app.route('/api/admin/update-submission', methods=['POST'])
+def api_update_submission():
+    data = request.get_json()
+    sub_id = data.get('id')
+    status = data.get('status')
+    
+    if not sub_id or status not in ['approved', 'rejected']:
+        return jsonify({'success': False, 'error': 'Invalid request.'}), 400
+        
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("UPDATE quest_completions SET status = %s WHERE id = %s", (status, sub_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Update submission error: {e}")
+        return jsonify({'success': False, 'error': 'Database error.'}), 500
+
 @app.route('/api/join', methods=['POST'])
 def api_join():
     data  = request.get_json(force=True, silent=True) or {}
@@ -333,6 +554,7 @@ def api_signup():
     email     = (data.get('email') or '').strip()
     phone     = (data.get('phone') or '').strip()
     team_name = (data.get('team_name') or '').strip()
+    team_secret_code = (data.get('team_secret_code') or '').strip()
     class_year = (data.get('class_year') or '').strip()
     teammates = data.get('teammates') or []
 
@@ -371,10 +593,10 @@ def api_signup():
 
         cur.execute("""
             INSERT INTO waitlist
-              (name, email, phone, team_name, teammates, class_year, ip_address, user_agent)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+              (name, email, phone, team_name, team_secret_code, teammates, class_year, ip_address, user_agent)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
-            name, email.lower(), phone, team_name,
+            name, email.lower(), phone, team_name, team_secret_code,
             json.dumps(teammates), class_year,
             ip_address, user_agent
         ))

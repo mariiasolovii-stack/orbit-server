@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard - Harvard Race</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f8f9fa;
+      color: #1a1a1a;
+      font-family: 'Inter', sans-serif;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .stat-card {
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #6c757d;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    /* ─── Submissions Table ─── */
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: #f1f3f5;
+      padding: 16px 24px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      color: #495057;
+      text-transform: uppercase;
+    }
+
+    td {
+      padding: 20px 24px;
+      border-bottom: 1px solid #f1f3f5;
+      vertical-align: middle;
+    }
+
+    .team-info {
+      font-weight: 700;
+    }
+
+    .quest-info {
+      font-size: 14px;
+      color: #495057;
+    }
+
+    .evidence-preview {
+      width: 100px;
+      height: 60px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #eee;
+      cursor: pointer;
+    }
+
+    .evidence-preview img, .evidence-preview video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+
+    .status-pending { background: #fff4e6; color: #d9480f; }
+    .status-approved { background: #ebfbee; color: #2b8a3e; }
+    .status-rejected { background: #fff5f5; color: #c92a2a; }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-approve { background: #40c057; color: #fff; }
+    .btn-approve:hover { background: #37b24d; }
+
+    .btn-reject { background: #fa5252; color: #fff; }
+    .btn-reject:hover { background: #f03e3e; }
+
+    /* ─── Modal ─── */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .modal-content {
+      max-width: 90%;
+      max-height: 90%;
+    }
+
+    .modal-content img, .modal-content video {
+      width: 100%;
+      height: auto;
+      max-height: 80vh;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h1>Quest Submissions</h1>
+      <div class="actions">
+        <a href="/leaderboard" style="font-size: 14px; color: #666;">View Leaderboard</a>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Pending</div>
+        <div class="stat-value">{{ pending_count }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Approved</div>
+        <div class="stat-value">{{ approved_count }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Teams</div>
+        <div class="stat-value">{{ total_teams }}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Team</th>
+            <th>Quest</th>
+            <th>Evidence</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in submissions %}
+            <tr>
+              <td>
+                <div class="team-info">{{ sub.team_name }}</div>
+                <div style="font-size: 12px; color: #999;">{{ sub.created_at.strftime('%b %d, %H:%M') }}</div>
+              </td>
+              <td>
+                <div class="quest-info">{{ sub.quest_name }}</div>
+                <div style="font-size: 12px; color: #40c057; font-weight: 700;">+{{ sub.stars }} stars</div>
+              </td>
+              <td>
+                <div class="evidence-preview" onclick="openModal('{{ sub.photo_url }}')">
+                  {% if sub.photo_url.lower().endswith(('.mp4', '.webm', '.mov')) %}
+                    <video muted><source src="{{ sub.photo_url }}" type="video/mp4"></video>
+                  {% else %}
+                    <img src="{{ sub.photo_url }}" alt="Evidence">
+                  {% endif %}
+                </div>
+              </td>
+              <td>
+                <span class="status-badge status-{{ sub.status }}">{{ sub.status }}</span>
+              </td>
+              <td class="actions">
+                {% if sub.status == 'pending' %}
+                  <button class="btn btn-approve" onclick="updateStatus({{ sub.id }}, 'approved')">Approve</button>
+                  <button class="btn btn-reject" onclick="updateStatus({{ sub.id }}, 'rejected')">Reject</button>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="modal" class="modal" onclick="closeModal()">
+    <div class="modal-content" id="modalContent"></div>
+  </div>
+
+  <script>
+    function openModal(url) {
+      const modal = document.getElementById('modal');
+      const content = document.getElementById('modalContent');
+      
+      if (url.toLowerCase().endsWith('.mp4') || url.toLowerCase().endsWith('.webm') || url.toLowerCase().endsWith('.mov')) {
+        content.innerHTML = `<video controls autoplay><source src="${url}" type="video/mp4"></video>`;
+      } else {
+        content.innerHTML = `<img src="${url}">`;
+      }
+      
+      modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+      document.getElementById('modalContent').innerHTML = '';
+    }
+
+    async function updateStatus(id, status) {
+      if (!confirm(`Are you sure you want to ${status} this submission?`)) return;
+
+      try {
+        const response = await fetch('/api/admin/update-submission', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, status })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          location.reload();
+        } else {
+          alert(result.error || 'Failed to update status');
+        }
+      } catch (error) {
+        alert('An error occurred');
+      }
+    }
+  </script>
+
+</body>
+</html>

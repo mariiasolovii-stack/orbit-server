@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Submit Quest - Harvard Race</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400;1,14..32,700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #0a0a0a;
+      color: #fff;
+      font-family: 'Inter', -apple-system, sans-serif;
+      line-height: 1.6;
+    }
+
+    /* ─── Header ─── */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      background: linear-gradient(to bottom, rgba(10,10,10,0.95) 0%, transparent 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .logo {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      text-decoration: none;
+    }
+
+    /* ─── Main Content ─── */
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 120px 24px 60px;
+    }
+
+    .form-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .form-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 32px;
+      font-weight: 600;
+      font-style: italic;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .form-subtitle {
+      font-size: 14px;
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 8px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      padding: 14px 16px;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.09);
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      width: 100%;
+      height: 120px;
+      border: 2px dashed rgba(255,255,255,0.12);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .file-input-wrapper:hover {
+      border-color: rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .file-input-wrapper input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .file-hint {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: #fff;
+      color: #0a0a0a;
+      border: none;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 12px;
+    }
+
+    .submit-btn:hover {
+      background: #f0f0f0;
+      transform: translateY(-2px);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .success-msg {
+      display: none;
+      text-align: center;
+      padding: 40px 0;
+    }
+
+    .success-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .success-title {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .success-text {
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 32px;
+    }
+
+    .back-btn {
+      display: inline-block;
+      padding: 12px 24px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* ─── Mobile ─── */
+    @media (max-width: 640px) {
+      .form-card {
+        padding: 32px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="/" class="logo">orbit</a>
+  </header>
+
+  <main class="container">
+    <div class="form-card" id="formCard">
+      <h1 class="form-title">submit evidence</h1>
+      <p class="form-subtitle">upload your proof to earn stars for your team.</p>
+
+      <form id="questForm">
+        <div class="form-group">
+          <label for="team_name">team name</label>
+          <input type="text" id="team_name" name="team_name" placeholder="Enter your team name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="secret_code">team secret code</label>
+          <input type="text" id="secret_code" name="secret_code" placeholder="6-digit code" maxlength="6" required>
+        </div>
+
+        <div class="form-group">
+          <label for="quest_id">select quest</label>
+          <select id="quest_id" name="quest_id" required>
+            <option value="" disabled selected>Choose a quest...</option>
+            {% for quest in quests %}
+              <option value="{{ quest.id }}">{{ quest.name }} ({{ quest.stars }} stars)</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>evidence (photo or video)</label>
+          <div class="file-input-wrapper">
+            <input type="file" id="evidence" name="evidence" accept="image/*,video/*" required>
+            <span class="file-hint" id="fileHint">Click or drag to upload</span>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">submit for approval</button>
+      </form>
+    </div>
+
+    <div class="success-msg" id="successMsg">
+      <div class="success-icon">✨</div>
+      <h2 class="success-title">submission received!</h2>
+      <p class="success-text">Your evidence has been sent to the admin for approval. Stars will be added to your team total once verified.</p>
+      <a href="/leaderboard" class="back-btn">view leaderboard</a>
+    </div>
+  </main>
+
+  <script>
+    const questForm = document.getElementById('questForm');
+    const fileInput = document.getElementById('evidence');
+    const fileHint  = document.getElementById('fileHint');
+    const submitBtn = document.getElementById('submitBtn');
+    const formCard  = document.getElementById('formCard');
+    const successMsg = document.getElementById('successMsg');
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        fileHint.textContent = e.target.files[0].name;
+        fileHint.style.color = '#fff';
+      }
+    });
+
+    questForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'uploading...';
+
+      const formData = new FormData(questForm);
+
+      try {
+        const response = await fetch('/api/submit-quest', {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          formCard.style.display = 'none';
+          successMsg.style.display = 'block';
+        } else {
+          alert(result.error || 'Something went wrong. Please check your team name and secret code.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'submit for approval';
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'submit for approval';
+      }
+    });
+  </script>
+
+</body>
+</html>

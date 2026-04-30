@@ -350,6 +350,11 @@
         <input type="text" id="team_name" name="team_name" placeholder="Give your crew a name" required>
         <div class="field-error" id="team_name-error">Please enter a team name.</div>
       </div>
+      <div class="field">
+        <label for="team_secret_code">Team Secret Code (6 digits)</label>
+        <input type="text" id="team_secret_code" name="team_secret_code" placeholder="Choose a 6-digit code" maxlength="6" required>
+        <div class="field-error" id="team_secret_code-error">Please choose a 6-digit secret code for your team.</div>
+      </div>
 
       <div id="teammates-container">
         <!-- Dynamic teammates will be added here -->
@@ -477,6 +482,7 @@
     if (!isHarvardEmail(val('email'))) { showError('email', true); valid = false; } else showError('email', false);
     if (!isValidPhone(val('phone'))) { showError('phone', true); valid = false; } else showError('phone', false);
     if (!val('team_name')) { showError('team_name', true); valid = false; } else showError('team_name', false);
+    if (val('team_secret_code').length < 6) { showError('team_secret_code', true); valid = false; } else showError('team_secret_code', false);
 
     // Dynamic Teammates
     const teammates = [];
@@ -513,6 +519,7 @@
       email: val('email'),
       phone: val('phone'),
       team_name: val('team_name'),
+      team_secret_code: val('team_secret_code'),
       teammates: teammates,
       class_year: classYear
     };
