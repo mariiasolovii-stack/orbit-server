@@ -24,9 +24,6 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov', 'webm'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-with app.app_context():
-    init_db()
-
 # Database
 DATABASE_URL = os.environ.get(
     'DATABASE_URL',
@@ -175,6 +172,9 @@ def init_db():
     cur.close()
     conn.close()
     logging.info("Database initialized.")
+
+with app.app_context():
+    init_db()
 
 # ── Email via Resend ──
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
