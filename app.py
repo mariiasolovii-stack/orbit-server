@@ -87,6 +87,11 @@ def init_db():
         cur.execute("ALTER TABLE waitlist ALTER COLUMN t1_phone DROP NOT NULL")
     except Exception:
         pass
+    # Update quest_completions status to auto-approve
+    try:
+        cur.execute("ALTER TABLE quest_completions ALTER COLUMN status SET DEFAULT 'approved'")
+    except Exception:
+        pass
     cur.execute("""
         CREATE TABLE IF NOT EXISTS early_access (
             id          SERIAL PRIMARY KEY,
@@ -132,7 +137,37 @@ def init_db():
             team_name   TEXT NOT NULL,
             quest_id    INTEGER REFERENCES quests(id),
             photo_url   TEXT,
-            status      TEXT NOT NULL DEFAULT 'pending',
+            status      TEXT NOT NULL DEFAULT 'approved',
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS game_schedule (
+            id          SERIAL PRIMARY KEY,
+            game_name   TEXT NOT NULL,
+            start_date  DATE NOT NULL,
+            end_date    DATE NOT NULL,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS quest_batches (
+            id          SERIAL PRIMARY KEY,
+            game_id     INTEGER REFERENCES game_schedule(id),
+            batch_num   INTEGER NOT NULL,
+            release_date TIMESTAMPTZ NOT NULL,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS message_log (
+            id          SERIAL PRIMARY KEY,
+            team_name   TEXT NOT NULL,
+            event_type  TEXT NOT NULL,
+            message_text TEXT,
+            phone_numbers TEXT[],
+            status      TEXT DEFAULT 'pending',
+            sent_at     TIMESTAMPTZ,
             created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     """)
@@ -446,18 +481,46 @@ def api_submit_quest():
             file.save(file_path)
             photo_url = f"/static/uploads/{filename}"
             
-            # Insert completion
+            # Insert completion with AUTO-APPROVAL
             cur.execute("""
                 INSERT INTO quest_completions (team_name, quest_id, photo_url, status)
-                VALUES (%s, %s, %s, 'pending')
+                VALUES (%s, %s, %s, 'approved')
+                RETURNING id
             """, (team_name, quest_id, photo_url))
+            completion_id = cur.fetchone()['id']
+            
+            # Get quest details
+            cur.execute("SELECT name, stars FROM quests WHERE id = %s", (quest_id,))
+            quest = cur.fetchone()
+            
+            # Get all phone numbers for the team
+            cur.execute("SELECT all_phone_numbers FROM waitlist WHERE team_name = %s", (team_name,))
+            team_data = cur.fetchone()
+            phone_numbers = team_data["all_phone_numbers"] if team_data else []
+            
+            # Log message for bot
+            cur.execute("""
+                INSERT INTO message_log (team_name, event_type, message_text, phone_numbers, status)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (team_name, 'quest_approved', f"You earned {quest['stars']} stars for {quest['name']}!", phone_numbers, 'pending'))
             
             conn.commit()
             cur.close()
             conn.close()
             
-            # Notify admin (placeholder for now)
-            logging.info(f"New quest submission from team {team_name}")
+            # Trigger webhook to local bot
+            webhook_url = os.environ.get('BOT_WEBHOOK_URL', 'http://localhost:5000/webhook')
+            try:
+                http_requests.post(webhook_url, json={
+                    'event': 'quest_approved',
+                    'team_name': team_name,
+                    'quest_name': quest['name'],
+                    'stars': quest['stars'],
+                    'phone_numbers': phone_numbers,
+                    'timestamp': datetime.utcnow().isoformat()
+                }, timeout=5)
+            except Exception as e:
+                logging.warning(f"Webhook call failed: {e}")
             
             return jsonify({'success': True})
         else:
@@ -486,6 +549,165 @@ def api_update_submission():
         return jsonify({'success': True})
     except Exception as e:
         logging.error(f"Update submission error: {e}")
+        return jsonify({'success': False, 'error': 'Database error.'}), 500
+
+@app.route('/admin/bot')
+def admin_bot():
+    secret = request.args.get('secret', '')
+    admin_secret = os.environ.get('ADMIN_SECRET', '')
+    if admin_secret and secret != admin_secret:
+        return "Unauthorized", 401
+    return render_template('admin_bot.html')
+
+@app.route('/api/admin/send-message', methods=['POST'])
+def api_send_message():
+    data = request.get_json()
+    msg_type = data.get('type', 'custom')
+    message = data.get('message', '')
+    team = data.get('team', 'all')
+    
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        
+        if team == 'all':
+            cur.execute("SELECT DISTINCT team_name, teammates FROM waitlist")
+        else:
+            cur.execute("SELECT team_name, teammates FROM waitlist WHERE team_name = %s", (team,))
+        
+        teams = cur.fetchall()
+        count = 0
+        
+        for t in teams:
+            phone_numbers = []
+            if t['teammates']:
+                for tm in t['teammates']:
+                    if tm.get('phone'):
+                        phone_numbers.append(tm['phone'])
+            
+            if phone_numbers:
+                cur.execute("""
+                    INSERT INTO message_log (team_name, event_type, message_text, phone_numbers, status)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (t['team_name'], msg_type, message, phone_numbers, 'pending'))
+                count += 1
+                
+                # Trigger webhook
+                webhook_url = os.environ.get('BOT_WEBHOOK_URL', 'http://localhost:5000/webhook')
+                try:
+                    http_requests.post(webhook_url, json={
+                        'event': 'manual_message',
+                        'team_name': t['team_name'],
+                        'message': message,
+                        'phone_numbers': phone_numbers,
+                        'timestamp': datetime.utcnow().isoformat()
+                    }, timeout=5)
+                except Exception as e:
+                    logging.warning(f"Webhook call failed: {e}")
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True, 'count': count})
+    except Exception as e:
+        logging.error(f"Send message error: {e}")
+        return jsonify({'success': False, 'error': 'Database error.'}), 500
+
+@app.route('/api/admin/message-log')
+def api_message_log():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM message_log ORDER BY created_at DESC LIMIT 50")
+        messages = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify([dict(m) for m in messages])
+    except Exception as e:
+        logging.error(f"Message log error: {e}")
+        return jsonify([]), 500
+
+@app.route('/api/admin/recent-submissions')
+def api_recent_submissions():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT qc.*, q.name as quest_name, q.stars
+            FROM quest_completions qc
+            JOIN quests q ON qc.quest_id = q.id
+            ORDER BY qc.created_at DESC
+            LIMIT 20
+        """)
+        submissions = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify([dict(s) for s in submissions])
+    except Exception as e:
+        logging.error(f"Recent submissions error: {e}")
+        return jsonify([]), 500
+
+@app.route('/api/admin/batches')
+def api_batches():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM quest_batches ORDER BY release_date ASC")
+        batches = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify([dict(b) for b in batches])
+    except Exception as e:
+        logging.error(f"Batches error: {e}")
+        return jsonify([]), 500
+
+@app.route('/api/admin/create-batch', methods=['POST'])
+def api_create_batch():
+    data = request.get_json()
+    batch_num = data.get('batch_num')
+    release_date = data.get('release_date')
+    quests = data.get('quests', [])
+    
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        
+        # Create batch
+        cur.execute("""
+            INSERT INTO quest_batches (game_id, batch_num, release_date)
+            VALUES (1, %s, %s)
+        """, (batch_num, f"{release_date} 23:59:00"))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Create batch error: {e}")
+        return jsonify({'success': False, 'error': 'Database error.'}), 500
+
+@app.route('/api/admin/game-schedule', methods=['POST'])
+def api_game_schedule():
+    data = request.get_json()
+    start_date = data.get('start_date')
+    end_date = data.get('end_date')
+    
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            INSERT INTO game_schedule (game_name, start_date, end_date)
+            VALUES ('Orbit 2026', %s, %s)
+            ON CONFLICT DO NOTHING
+        """, (start_date, end_date))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Game schedule error: {e}")
         return jsonify({'success': False, 'error': 'Database error.'}), 500
 
 @app.route('/api/join', methods=['POST'])
@@ -598,18 +820,48 @@ def api_signup():
         """, (
             name, email.lower(), phone, team_name, team_secret_code,
             json.dumps(teammates), class_year,
-            ip_address, user_agent
+            ip_address, user_agent,
+            all_team_phones
         ))
         conn.commit()
+        
+        # Get all phone numbers for the team
+        all_team_phones = [phone]
+        for tm in teammates:
+            if tm.get("phone"):
+                all_team_phones.append(tm["phone"])
+
+        # Log and trigger webhook for acceptance message
+        webhook_url = os.environ.get("BOT_WEBHOOK_URL", "http://localhost:5000/webhook")
+        acceptance_message = f"Welcome to Orbit! You've been accepted into the Harvard Race 🏁\n\nYour team secret code: {team_secret_code}\nRules: joinorbit.one/about"
+        
+        cur.execute("""
+            INSERT INTO message_log (team_name, event_type, message_text, phone_numbers, status)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (team_name, "acceptance", acceptance_message, all_team_phones, "pending"))
+        conn.commit()
+
+        try:
+            http_requests.post(webhook_url, json={
+                "event": "acceptance",
+                "team_name": team_name,
+                "message": acceptance_message,
+                "phone_numbers": all_team_phones,
+                "timestamp": datetime.utcnow().isoformat()
+            }, timeout=5)
+        except Exception as e:
+            logging.warning(f"Acceptance webhook call failed: {e}")
+
         cur.close()
         conn.close()
+
     except Exception as e:
         logging.error(f"DB insert error: {e}")
-        return jsonify({'success': False, 'error': 'Database error. Please try again.'}), 500
+        return jsonify({"success": False, "error": "Database error. Please try again."}), 500
 
     send_confirmation_email(email, name, team_name)
 
-    return jsonify({'success': True}), 201
+    return jsonify({"success": True}), 201
 
 @app.route('/admin/signups')
 def admin_signups():
