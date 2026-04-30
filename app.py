@@ -273,12 +273,12 @@ def is_harvard_email(email):
     return lower.endswith('.harvard.edu') or lower.endswith('@harvard.edu')
 
 # Routes
-@app.route('/welcome')
-def welcome():
-    return render_template('welcome.html')
-
 @app.route('/')
 def index():
+    return render_template('welcome.html')
+
+@app.route('/gate')
+def gate():
     return render_template('index.html')
 
 @app.route('/signup')
