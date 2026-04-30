@@ -15,6 +15,9 @@ application = Flask(__name__, template_folder='templates', static_folder='static
 app = application
 logging.basicConfig(level=logging.INFO)
 
+with app.app_context():
+    init_db()
+
 # Database
 DATABASE_URL = os.environ.get(
     'DATABASE_URL',
