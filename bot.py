@@ -1,101 +1,137 @@
 import os
-import json
 import subprocess
-from flask import Flask, request, jsonify
-import logging
-import threading
 import time
+import json
+import logging
+from flask import Flask, request, jsonify
+import threading
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("bot.log"),
+        logging.StreamHandler()
+    ]
+)
 
 app = Flask(__name__)
-logging.basicConfig(level=logging.INFO)
 
-# This is the ngrok URL that will be dynamically updated when ngrok starts
-NGROK_PUBLIC_URL = None
-
-def send_imessage(phone_number, message):
-    # AppleScript to send iMessage
-    # Note: This requires 'Messages' app to be open and logged in on the Mac
-    # And 'Allow JavaScript from Apple Events' to be enabled in Script Editor preferences
-    script = f"""
-    tell application "Messages"
-        set targetService to 1st service whose service type = iMessage
-        set targetBuddy to buddy "{phone_number}" of targetService
-        send "{message}" to targetBuddy
-    end tell
+def send_imessage(phone_numbers, message):
     """
+    Sends an iMessage to a group of phone numbers using AppleScript.
+    If multiple numbers are provided, it creates/uses a group chat.
+    """
+    # Clean phone numbers: remove spaces, dashes, etc.
+    cleaned_numbers = [str(num).strip().replace(" ", "").replace("-", "").replace("(", "").replace(")", "") for num in phone_numbers]
+    
+    # Filter out empty strings
+    cleaned_numbers = [num for num in cleaned_numbers if num]
+    
+    if not cleaned_numbers:
+        logging.error("No valid phone numbers provided.")
+        return False
+
+    # Escape double quotes in message for AppleScript
+    escaped_message = message.replace('"', '\\"')
+    
+    if len(cleaned_numbers) == 1:
+        # Single recipient script
+        target = cleaned_numbers[0]
+        script = f'''
+        tell application "Messages"
+            set targetService to 1st service whose service type is iMessage
+            set targetBuddy to buddy "{target}" of targetService
+            send "{escaped_message}" to targetBuddy
+        end tell
+        '''
+    else:
+        # Group chat script
+        # This script attempts to find an existing chat with these participants or creates a new one
+        participants_list = ", ".join([f'"{num}"' for num in cleaned_numbers])
+        script = f'''
+        tell application "Messages"
+            set targetService to 1st service whose service type is iMessage
+            set participantPhones to {{{participants_list}}}
+            
+            -- Try to find an existing chat with these exact participants
+            set foundChat to missing value
+            set allChats to every chat
+            repeat with aChat in allChats
+                set chatParticipants to participants of aChat
+                set chatPhones to {{}}
+                repeat with aParticipant in chatParticipants
+                    copy handle of aParticipant to end of chatPhones
+                end repeat
+                
+                -- Check if participants match (simplified check)
+                set matchCount to 0
+                repeat with p in participantPhones
+                    if chatPhones contains p then
+                        set matchCount to matchCount + 1
+                    end if
+                end repeat
+                
+                if matchCount is equal to (count of participantPhones) and (count of chatPhones) is equal to (count of participantPhones) then
+                    set foundChat to aChat
+                    exit repeat
+                end if
+            end repeat
+            
+            if foundChat is not missing value then
+                send "{escaped_message}" to foundChat
+            else
+                -- Create new group chat by sending to the list of buddies
+                set targetBuddies to {{}}
+                repeat with p in participantPhones
+                    copy buddy p of targetService to end of targetBuddies
+                end repeat
+                send "{escaped_message}" to targetBuddies
+            end if
+        end tell
+        '''
+
     try:
-        subprocess.run(["osascript", "-e", script], check=True)
-        logging.info(f"iMessage sent to {phone_number}: {message}")
-        return True
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Failed to send iMessage to {phone_number}: {e}")
+        logging.info(f"Sending message to {cleaned_numbers}: {message[:50]}...")
+        process = subprocess.Popen(['osascript', '-e', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        
+        if process.returncode == 0:
+            logging.info("Message sent successfully.")
+            return True
+        else:
+            logging.error(f"AppleScript Error: {stderr.decode('utf-8')}")
+            return False
+    except Exception as e:
+        logging.error(f"Failed to execute AppleScript: {e}")
         return False
 
 @app.route('/webhook', methods=['POST'])
-def webhook_receiver():
-    data = request.json
+def webhook():
+    data = request.get_json()
     if not data:
-        return jsonify({'status': 'error', 'message': 'No JSON data received'}), 400
-
-    event = data.get('event')
+        return jsonify({"error": "No data provided"}), 400
+    
+    event_type = data.get('event')
     team_name = data.get('team_name')
+    message = data.get('message')
     phone_numbers = data.get('phone_numbers', [])
-    message_text = data.get('message')
-    quest_name = data.get('quest_name')
-    stars = data.get('stars')
+    
+    if not phone_numbers or not message:
+        return jsonify({"error": "Missing phone_numbers or message"}), 400
+    
+    # Run sending in a separate thread to avoid blocking the webhook response
+    thread = threading.Thread(target=send_imessage, args=(phone_numbers, message))
+    thread.start()
+    
+    return jsonify({"status": "queued", "team": team_name, "event": event_type}), 200
 
-    logging.info(f"Received webhook event: {event} for team {team_name}")
-
-    if event == 'quest_approved':
-        msg = f"Your submission for '{quest_name}' was approved! You earned {stars} stars! Check the leaderboard: joinorbit.one/leaderboard"
-    elif event == 'manual_message':
-        msg = message_text
-    else:
-        msg = f"Orbit Update for {team_name}: {message_text}"
-
-    if not msg:
-        return jsonify({'status': 'error', 'message': 'No message to send'}), 400
-
-    sent_count = 0
-    for phone in phone_numbers:
-        if send_imessage(phone, msg):
-            sent_count += 1
-
-    return jsonify({'status': 'success', 'sent_messages': sent_count}), 200
-
-def run_ngrok():
-    global NGROK_PUBLIC_URL
-    logging.info("Starting ngrok tunnel...")
-    try:
-        # Start ngrok process
-        ngrok_process = subprocess.Popen(['ngrok', 'http', '5000'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        
-        # Wait for ngrok to start and get the public URL
-        time.sleep(5) # Give ngrok some time to start
-        
-        # Fetch ngrok tunnels info from its API
-        response = requests.get("http://localhost:4040/api/tunnels")
-        tunnels = response.json()['tunnels']
-        for tunnel in tunnels:
-            if tunnel['proto'] == 'https':
-                NGROK_PUBLIC_URL = tunnel['public_url']
-                break
-
-        if NGROK_PUBLIC_URL:
-            logging.info(f"ngrok tunnel established at: {NGROK_PUBLIC_URL}")
-            os.environ['BOT_WEBHOOK_URL'] = NGROK_PUBLIC_URL + '/webhook'
-            logging.info(f"BOT_WEBHOOK_URL set to: {os.environ['BOT_WEBHOOK_URL']}")
-        else:
-            logging.error("Failed to get ngrok public URL.")
-
-    except Exception as e:
-        logging.error(f"Error starting ngrok: {e}")
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok", "bot": "Orbit iMessage Bot"}), 200
 
 if __name__ == '__main__':
-    # Start ngrok in a separate thread
-    ngrok_thread = threading.Thread(target=run_ngrok)
-    ngrok_thread.daemon = True
-    ngrok_thread.start()
-
-    # Run Flask app
-    app.run(port=5000, debug=True, use_reloader=False) # use_reloader=False to prevent ngrok from starting twice
+    print("\nStarting Orbit iMessage Bot on port 5000...")
+    print("Make sure to run 'ngrok http 5000' in another terminal window.\n")
+    app.run(port=5000)
