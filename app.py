@@ -579,11 +579,10 @@ def api_send_message():
         count = 0
         
         for t in teams:
-            phone_numbers = []
-            if t['teammates']:
-                for tm in t['teammates']:
-                    if tm.get('phone'):
-                        phone_numbers.append(tm['phone'])
+            # Get all phone numbers for the team
+            cur.execute("SELECT all_phone_numbers FROM waitlist WHERE team_name = %s", (t['team_name'],))
+            team_data = cur.fetchone()
+            phone_numbers = team_data["all_phone_numbers"] if team_data and team_data["all_phone_numbers"] else []
             
             if phone_numbers:
                 cur.execute("""
@@ -827,10 +826,16 @@ def api_signup():
         ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
         user_agent = request.headers.get('User-Agent', '')
 
+        # Get all phone numbers for the team
+        all_team_phones = [phone]
+        for tm in teammates:
+            if tm.get("phone"):
+                all_team_phones.append(tm["phone"])
+
         cur.execute("""
             INSERT INTO waitlist
-              (name, email, phone, team_name, team_secret_code, teammates, class_year, ip_address, user_agent)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+              (name, email, phone, team_name, team_secret_code, teammates, class_year, ip_address, user_agent, all_phone_numbers)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             name, email.lower(), phone, team_name, team_secret_code,
             json.dumps(teammates), class_year,
