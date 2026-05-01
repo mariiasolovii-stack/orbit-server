@@ -341,6 +341,26 @@
       </div>
     </div>
 
+    <!-- Team List -->
+    <div class="card">
+      <div class="card-title">Teams & Quick Actions</div>
+      <div style="max-height: 400px; overflow-y: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Team Name</th>
+              <th>Members</th>
+              <th>Secret Code</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="teamList">
+            <!-- Populated by API -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Recent Submissions -->
     <div class="card">
       <div class="card-title">Recent Submissions</div>
@@ -530,11 +550,50 @@ Leaderboard: joinorbit.one/leaderboard`,
       }
     }
 
+    async function loadTeams() {
+      try {
+        const response = await fetch('/api/admin/teams');
+        const teams = await response.json();
+        const list = document.getElementById('teamList');
+        list.innerHTML = teams.map(t => {
+          const members = [t.name, t.t1_name, t.t2_name, t.t3_name].filter(Boolean).join(', ');
+          return `
+            <tr>
+              <td><strong>${t.team_name}</strong></td>
+              <td>${members}</td>
+              <td><code>${t.team_secret_code}</code></td>
+              <td>
+                <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 10px;" 
+                  onclick="sendWelcomeToTeam('${t.team_name}', '${t.team_secret_code}')">
+                  Send Welcome
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Error loading teams:', error);
+      }
+    }
+
+    async function sendWelcomeToTeam(teamName, code) {
+      const template = messageTemplates.acceptance.replace('[TEAM_CODE]', code);
+      document.getElementById('sendToTeam').value = teamName;
+      document.getElementById('messageTemplate').value = template;
+      document.getElementById('messageType').value = 'acceptance';
+      
+      if (confirm(`Send welcome message to ${teamName}?`)) {
+        await sendMessage();
+      }
+    }
+
     // Initialize
     updateMessageTemplate();
     loadBatches();
     loadSubmissions();
+    loadTeams();
     setInterval(refreshLog, 10000); // Refresh every 10 seconds
+    setInterval(loadTeams, 30000); // Refresh teams every 30 seconds
   </script>
 
 </body>

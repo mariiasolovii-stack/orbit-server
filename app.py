@@ -647,8 +647,22 @@ def api_recent_submissions():
         logging.error(f"Recent submissions error: {e}")
         return jsonify([]), 500
 
+@app.route('/api/admin/teams')
+def api_admin_teams():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT team_name, name, phone, t1_name, t1_phone, t2_name, t2_phone, t3_name, t3_phone, team_secret_code FROM waitlist ORDER BY created_at DESC")
+        teams = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify([dict(t) for t in teams])
+    except Exception as e:
+        logging.error(f"Admin teams error: {e}")
+        return jsonify([]), 500
+
 @app.route('/api/admin/batches')
-def api_batches():
+def api_admin_batches():
     try:
         conn = get_db()
         cur = conn.cursor()
