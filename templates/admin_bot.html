@@ -349,7 +349,9 @@
           <thead>
             <tr>
               <th>Team Name</th>
-              <th>Members</th>
+              <th>Captain</th>
+              <th>Teammates</th>
+              <th>All Phones</th>
               <th>Secret Code</th>
               <th>Action</th>
             </tr>
@@ -412,10 +414,12 @@ Leaderboard: joinorbit.one/leaderboard`,
       setTimeout(() => alert.remove(), 5000);
     }
 
-    async function sendMessage() {
-      const type = document.getElementById('messageType').value;
-      const message = document.getElementById('messageTemplate').value;
-      const team = document.getElementById('sendToTeam').value || 'all';
+    async function sendMessage(messageType, messageTemplate, sendToTeam, phoneNumbers) {
+      // If called from quick action, use passed values
+      messageType = messageType || document.getElementById("messageType").value;
+      messageTemplate = messageTemplate || document.getElementById("messageTemplate").value;
+      sendToTeam = sendToTeam || document.getElementById("sendToTeam").value;
+      phoneNumbers = phoneNumbers || []; // This will be populated from the team list or left empty for 'all'
 
       if (!message.trim()) {
         showAlert('Please enter a message', 'error');
@@ -426,7 +430,7 @@ Leaderboard: joinorbit.one/leaderboard`,
         const response = await fetch('/api/admin/send-message', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type, message, team })
+          body: JSON.stringify({ message_type: messageType, message_template: messageTemplate, send_to_team: sendToTeam, phone_numbers: phoneNumbers })
         });
 
         const result = await response.json();
@@ -556,16 +560,20 @@ Leaderboard: joinorbit.one/leaderboard`,
         const teams = await response.json();
         const list = document.getElementById('teamList');
         list.innerHTML = teams.map(t => {
-          const members = [t.name, t.t1_name, t.t2_name, t.t3_name].filter(Boolean).join(', ');
+          const captainName = t.name;
+          const captainPhone = t.phone;
+          const teammatesData = t.teammates ? JSON.parse(t.teammates) : [];
+          const teammatesList = teammatesData.map(tm => `${tm.name} (${tm.phone})`).join(', ');
+          const allPhonesList = t.all_phone_numbers ? t.all_phone_numbers.join(', ') : '';
           return `
             <tr>
               <td><strong>${t.team_name}</strong></td>
-              <td>${members}</td>
+              <td>${captainName} (${captainPhone})</td>
+              <td>${teammatesList}</td>
+              <td>${allPhonesList}</td>
               <td><code>${t.team_secret_code}</code></td>
               <td>
-                <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 10px;" 
-                  onclick="sendWelcomeToTeam('${t.team_name}', '${t.team_secret_code}')">
-                  Send Welcome
+                <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 10px;"                  onclick="sendWelcomeToTeam(\'${t.team_name}\', \'${t.team_secret_code}\', \'${allPhonesList}\')">                 Send Welcome
                 </button>
               </td>
             </tr>
@@ -576,14 +584,15 @@ Leaderboard: joinorbit.one/leaderboard`,
       }
     }
 
-    async function sendWelcomeToTeam(teamName, code) {
+    async function sendWelcomeToTeam(teamName, code, allPhonesString) {
       const template = messageTemplates.acceptance.replace('[TEAM_CODE]', code);
       document.getElementById('sendToTeam').value = teamName;
       document.getElementById('messageTemplate').value = template;
       document.getElementById('messageType').value = 'acceptance';
       
       if (confirm(`Send welcome message to ${teamName}?`)) {
-        await sendMessage();
+        const phoneNumbersArray = allPhonesString.split(', ').filter(Boolean);
+        await sendMessage("acceptance", messageTemplates.acceptance.replace("[TEAM_CODE]", code), teamName, phoneNumbersArray);
       }
     }
 
