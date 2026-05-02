@@ -242,6 +242,24 @@
           </div>
         </div>
 
+        <div class="form-group" style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+          <label style="margin-bottom: 16px; color: #fff;">Consent & Safety</label>
+          
+          <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;">
+            <input type="checkbox" id="consent_under_21" name="consent_under_21" style="width: 20px; height: 20px; margin-top: 2px; cursor: pointer;" required>
+            <label for="consent_under_21" style="text-transform: none; letter-spacing: normal; color: rgba(255,255,255,0.8); font-size: 13px; cursor: pointer;">
+              Is anyone on your team under 21? (Check if YES)
+            </label>
+          </div>
+
+          <div style="display: flex; align-items: flex-start; gap: 12px;">
+            <input type="checkbox" id="consent_promo" name="consent_promo" style="width: 20px; height: 20px; margin-top: 2px; cursor: pointer;" required>
+            <label for="consent_promo" style="text-transform: none; letter-spacing: normal; color: rgba(255,255,255,0.8); font-size: 13px; cursor: pointer;">
+              Do you consent to your photo/video being used for promotional purposes and included in your end-of-race recap video?
+            </label>
+          </div>
+        </div>
+
         <button type="submit" class="submit-btn" id="submitBtn">submit for approval</button>
       </form>
     </div>
@@ -276,6 +294,8 @@
       submitBtn.textContent = 'uploading...';
 
       const formData = new FormData(questForm);
+      formData.set('consent_under_21', document.getElementById('consent_under_21').checked);
+      formData.set('consent_promo', document.getElementById('consent_promo').checked);
 
       try {
         const response = await fetch('/api/submit-quest', {

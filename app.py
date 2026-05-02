@@ -57,8 +57,9 @@ def init_db():
             user_agent      TEXT,
             confirmed       BOOLEAN NOT NULL DEFAULT FALSE,
             class_year      TEXT,
-            team_secret_code TEXT
-        )""")
+            team_secret_code TEXT,
+            is_active BOOLEAN DEFAULT TRUE
+        )""")},{find:
     # Migration: Add teammates column if it doesn't exist
     try:
         cur.execute("ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS teammates JSONB DEFAULT '[]'")
@@ -74,6 +75,11 @@ def init_db():
         cur.execute("ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS team_secret_code TEXT")
     except Exception:
         pass
+    # Migration: Add is_active column if it doesn't exist
+    try:
+        cur.execute("ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE")
+    except Exception:
+        pass
     # Add name columns if they don't exist yet (for existing tables)
     for col in ['t1_name', 't2_name', 't3_name']:
         try:
@@ -85,9 +91,20 @@ def init_db():
         cur.execute("ALTER TABLE waitlist ALTER COLUMN t1_phone DROP NOT NULL")
     except Exception:
         pass
-    # Update quest_completions status to auto-approve
+    # Update quest_completions status to pending
     try:
-        cur.execute("ALTER TABLE quest_completions ALTER COLUMN status SET DEFAULT 'approved'")
+        cur.execute("ALTER TABLE quest_completions ALTER COLUMN status SET DEFAULT 'pending'")
+    except Exception:
+        pass
+    # Migration: Add stars_awarded to quest_completions
+    try:
+        cur.execute("ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS stars_awarded INTEGER DEFAULT 0")
+    except Exception:
+        pass
+    # Migration: Add consent columns to quest_completions
+    try:
+        cur.execute("ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS consent_under_21 BOOLEAN DEFAULT FALSE")
+        cur.execute("ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS consent_promo BOOLEAN DEFAULT FALSE")
     except Exception:
         pass
     cur.execute("""
@@ -135,7 +152,10 @@ def init_db():
             team_name   TEXT NOT NULL,
             quest_id    INTEGER REFERENCES quests(id),
             photo_url   TEXT,
-            status      TEXT NOT NULL DEFAULT 'approved',
+            status      TEXT NOT NULL DEFAULT 'pending',
+            stars_awarded INTEGER DEFAULT 0,
+            consent_under_21 BOOLEAN DEFAULT FALSE,
+            consent_promo BOOLEAN DEFAULT FALSE,
             created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     """)
@@ -340,7 +360,7 @@ def team_portal(team_name):
         
         # Get completions
         cur.execute("""
-            SELECT qc.*, q.name as quest_name, q.stars 
+            SELECT qc.*, q.name as quest_name, q.stars as default_stars
             FROM quest_completions qc
             JOIN quests q ON qc.quest_id = q.id
             WHERE qc.team_name = %s AND qc.status = 'approved'
@@ -348,7 +368,7 @@ def team_portal(team_name):
         """, (team_name,))
         completions = cur.fetchall()
         
-        total_stars = sum(c['stars'] for c in completions)
+        total_stars = sum(c['stars_awarded'] for c in completions)
         
         cur.close()
         conn.close()
@@ -386,10 +406,9 @@ def leaderboard():
         
         # Get all teams and their stars
         cur.execute("""
-            SELECT w.team_name, w.class_year, COALESCE(SUM(q.stars), 0) as total_stars
+            SELECT w.team_name, w.class_year, COALESCE(SUM(qc.stars_awarded), 0) as total_stars
             FROM waitlist w
             LEFT JOIN quest_completions qc ON w.team_name = qc.team_name AND qc.status = 'approved'
-            LEFT JOIN quests q ON qc.quest_id = q.id
             GROUP BY w.team_name, w.class_year
             ORDER BY total_stars DESC, w.team_name ASC
         """)
@@ -464,6 +483,9 @@ def api_submit_quest():
     if not all([team_name, secret_code, quest_id, file]):
         return jsonify({'success': False, 'error': 'All fields are required.'}), 400
         
+    consent_under_21 = request.form.get('consent_under_21') == 'true'
+    consent_promo = request.form.get('consent_promo') == 'true'
+    
     try:
         conn = get_db()
         cur = conn.cursor()
@@ -482,46 +504,17 @@ def api_submit_quest():
             file.save(file_path)
             photo_url = f"/static/uploads/{filename}"
             
-            # Insert completion with AUTO-APPROVAL
+            # Insert completion with PENDING status
             cur.execute("""
-                INSERT INTO quest_completions (team_name, quest_id, photo_url, status)
-                VALUES (%s, %s, %s, 'approved')
+                INSERT INTO quest_completions (team_name, quest_id, photo_url, status, consent_under_21, consent_promo)
+                VALUES (%s, %s, %s, 'pending', %s, %s)
                 RETURNING id
-            """, (team_name, quest_id, photo_url))
+            """, (team_name, quest_id, photo_url, consent_under_21, consent_promo))
             completion_id = cur.fetchone()['id']
-            
-            # Get quest details
-            cur.execute("SELECT name, stars FROM quests WHERE id = %s", (quest_id,))
-            quest = cur.fetchone()
-            
-            # Get all phone numbers for the team
-            cur.execute("SELECT all_phone_numbers FROM waitlist WHERE team_name = %s", (team_name,))
-            team_data = cur.fetchone()
-            phone_numbers = team_data["all_phone_numbers"] if team_data else []
-            
-            # Log message for bot
-            cur.execute("""
-                INSERT INTO message_log (team_name, event_type, message_text, phone_numbers, status)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (team_name, 'quest_approved', f"You earned {quest['stars']} stars for {quest['name']}!", phone_numbers, 'pending'))
             
             conn.commit()
             cur.close()
             conn.close()
-            
-            # Trigger webhook to local bot
-            webhook_url = os.environ.get('BOT_WEBHOOK_URL', 'http://localhost:5000/webhook')
-            try:
-                http_requests.post(webhook_url, json={
-                    'event': 'quest_approved',
-                    'team_name': team_name,
-                    'quest_name': quest['name'],
-                    'stars': quest['stars'],
-                    'phone_numbers': phone_numbers,
-                    'timestamp': datetime.utcnow().isoformat()
-                }, timeout=5)
-            except Exception as e:
-                logging.warning(f"Webhook call failed: {e}")
             
             return jsonify({'success': True})
         else:
@@ -536,6 +529,7 @@ def api_update_submission():
     data = request.get_json()
     sub_id = data.get('id')
     status = data.get('status')
+    stars_awarded = data.get('stars', 0)
     
     if not sub_id or status not in ['approved', 'rejected']:
         return jsonify({'success': False, 'error': 'Invalid request.'}), 400
@@ -543,7 +537,51 @@ def api_update_submission():
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("UPDATE quest_completions SET status = %s WHERE id = %s", (status, sub_id))
+        
+        # Update status and stars
+        cur.execute("""
+            UPDATE quest_completions 
+            SET status = %s, stars_awarded = %s 
+            WHERE id = %s 
+            RETURNING team_name, quest_id
+        """, (status, stars_awarded, sub_id))
+        result = cur.fetchone()
+        
+        if result and status == 'approved':
+            team_name = result['team_name']
+            quest_id = result['quest_id']
+            
+            # Get quest name
+            cur.execute("SELECT name FROM quests WHERE id = %s", (quest_id,))
+            quest = cur.fetchone()
+            quest_name = quest['name'] if quest else "Quest"
+            
+            # Get all phone numbers for the team
+            cur.execute("SELECT all_phone_numbers FROM waitlist WHERE team_name = %s", (team_name,))
+            team_data = cur.fetchone()
+            phone_numbers = team_data["all_phone_numbers"] if team_data else []
+            
+            # Log message for bot
+            message_text = f"Stars awarded! You earned {stars_awarded} stars for {quest_name}! ✨"
+            cur.execute("""
+                INSERT INTO message_log (team_name, event_type, message_text, phone_numbers, status)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (team_name, 'quest_approved', message_text, phone_numbers, 'pending'))
+            
+            # Trigger webhook to local bot
+            webhook_url = os.environ.get('BOT_WEBHOOK_URL', 'http://localhost:5000/webhook')
+            try:
+                http_requests.post(webhook_url, json={
+                    'event': 'quest_approved',
+                    'team_name': team_name,
+                    'quest_name': quest_name,
+                    'stars': stars_awarded,
+                    'phone_numbers': phone_numbers,
+                    'timestamp': datetime.utcnow().isoformat()
+                }, timeout=5)
+            except Exception as e:
+                logging.warning(f"Webhook call failed: {e}")
+        
         conn.commit()
         cur.close()
         conn.close()
@@ -652,7 +690,7 @@ def api_admin_teams():
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT team_name, name, phone, teammates, all_phone_numbers, team_secret_code FROM waitlist ORDER BY created_at DESC")
+        cur.execute("SELECT id, team_name, name, phone, teammates, all_phone_numbers, team_secret_code FROM waitlist WHERE is_active = TRUE ORDER BY created_at DESC")
         teams = cur.fetchall()
         cur.close()
         conn.close()
@@ -660,6 +698,28 @@ def api_admin_teams():
     except Exception as e:
         logging.error(f"Admin teams error: {e}")
         return jsonify([]), 500
+
+@app.route('/api/admin/delete-team', methods=['POST'])
+def api_delete_team():
+    data = request.get_json()
+    team_id = data.get('id')
+    secret = request.args.get('secret', '')
+    admin_secret = os.environ.get('ADMIN_SECRET', 'ORBIT_ADMIN_2026')
+    
+    if secret != admin_secret:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("UPDATE waitlist SET is_active = FALSE WHERE id = %s", (team_id,))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Delete team error: {e}")
+        return jsonify({'success': False, 'error': 'Database error.'}), 500
 
 @app.route('/api/admin/batches')
 def api_admin_batches():

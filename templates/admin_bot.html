@@ -573,14 +573,38 @@ Leaderboard: joinorbit.one/leaderboard`,
               <td>${allPhonesList}</td>
               <td><code>${t.team_secret_code}</code></td>
               <td>
-                <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 10px;"                  onclick="sendWelcomeToTeam(\'${t.team_name}\', \'${t.team_secret_code}\', \'${allPhonesList}\')">                 Send Welcome
-                </button>
+                <div class="button-group">
+                  <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 10px;" onclick="sendWelcomeToTeam(\'${t.team_name}\', \'${t.team_secret_code}\', \'${allPhonesList}\')">Send Welcome</button>
+                  <button class="btn btn-danger" style="padding: 4px 8px; font-size: 10px;" onclick="deleteTeam(${t.id}, \'${t.team_name}\')">Delete</button>
+                </div>
               </td>
             </tr>
           `;
         }).join('');
       } catch (error) {
         console.error('Error loading teams:', error);
+      }
+    }
+
+    async function deleteTeam(id, name) {
+      if (!confirm(`Are you sure you want to delete ${name}? This will hide the team from the roster.`)) return;
+      
+      const secret = new URLSearchParams(window.location.search).get('secret');
+      try {
+        const response = await fetch(`/api/admin/delete-team?secret=${secret}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        const result = await response.json();
+        if (result.success) {
+          showAlert(`Team ${name} deleted (soft delete).`);
+          loadTeams();
+        } else {
+          showAlert(result.error || 'Failed to delete team', 'error');
+        }
+      } catch (error) {
+        showAlert('Error deleting team', 'error');
       }
     }
 

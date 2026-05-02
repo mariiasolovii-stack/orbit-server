@@ -204,6 +204,7 @@
             <th>Team</th>
             <th>Quest</th>
             <th>Evidence</th>
+            <th>Consent</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -217,7 +218,11 @@
               </td>
               <td>
                 <div class="quest-info">{{ sub.quest_name }}</div>
-                <div style="font-size: 12px; color: #40c057; font-weight: 700;">+{{ sub.stars }} stars</div>
+                <div style="font-size: 12px; color: #40c057; font-weight: 700;">Default: +{{ sub.stars }} stars</div>
+                <div style="margin-top: 8px;">
+                  <label style="font-size: 10px; font-weight: 700; color: #666; text-transform: uppercase;">Award Stars:</label>
+                  <input type="number" id="stars-{{ sub.id }}" value="{{ sub.stars }}" style="width: 60px; padding: 4px; font-size: 12px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
               </td>
               <td>
                 <div class="evidence-preview" onclick="openModal('{{ sub.photo_url }}')">
@@ -229,7 +234,16 @@
                 </div>
               </td>
               <td>
+                <div style="font-size: 11px; line-height: 1.4;">
+                  <div>Under 21: <span style="color: {{ '#dc3545' if sub.consent_under_21 else '#28a745' }}; font-weight: 700;">{{ 'YES' if sub.consent_under_21 else 'NO' }}</span></div>
+                  <div>Promo: <span style="color: {{ '#28a745' if sub.consent_promo else '#dc3545' }}; font-weight: 700;">{{ 'YES' if sub.consent_promo else 'NO' }}</span></div>
+                </div>
+              </td>
+              <td>
                 <span class="status-badge status-{{ sub.status }}">{{ sub.status }}</span>
+                {% if sub.status == 'approved' %}
+                  <div style="font-size: 11px; margin-top: 4px; font-weight: 700; color: #2b8a3e;">+{{ sub.stars_awarded }} awarded</div>
+                {% endif %}
               </td>
               <td class="actions">
                 {% if sub.status == 'pending' %}
@@ -268,13 +282,14 @@
     }
 
     async function updateStatus(id, status) {
-      if (!confirm(`Are you sure you want to ${status} this submission?`)) return;
+      const stars = document.getElementById(`stars-${id}`).value;
+      if (!confirm(`Are you sure you want to ${status} this submission with ${stars} stars?`)) return;
 
       try {
         const response = await fetch('/api/admin/update-submission', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, status })
+          body: JSON.stringify({ id, status, stars: parseInt(stars) })
         });
 
         const result = await response.json();
