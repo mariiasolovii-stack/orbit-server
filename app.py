@@ -2,6 +2,7 @@
 import os
 import re
 import logging
+import traceback
 import threading
 import time
 import random
@@ -651,7 +652,7 @@ def api_admin_teams():
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT team_name, name, phone, t1_name, t1_phone, t2_name, t2_phone, t3_name, t3_phone, team_secret_code FROM waitlist ORDER BY created_at DESC")
+        cur.execute("SELECT team_name, name, phone, teammates, all_phone_numbers, team_secret_code FROM waitlist ORDER BY created_at DESC")
         teams = cur.fetchall()
         cur.close()
         conn.close()
@@ -875,7 +876,7 @@ def api_signup():
         conn.close()
 
     except Exception as e:
-        logging.error(f"DB insert error: {e}")
+        logging.error(f"DB insert error: {e}\n{traceback.format_exc()}")
         return jsonify({"success": False, "error": "Database error. Please try again."}), 500
 
     send_confirmation_email(email, name, team_name)
