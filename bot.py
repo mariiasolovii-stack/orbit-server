@@ -3,8 +3,10 @@ import subprocess
 import time
 import json
 import logging
-from flask import Flask, request, jsonify
+import requests
 import threading
+from datetime import datetime, timedelta
+from flask import Flask, request, jsonify
 
 # Configure logging
 logging.basicConfig(
@@ -17,6 +19,14 @@ logging.basicConfig(
 )
 
 app = Flask(__name__)
+
+# Configuration
+SERVER_URL = os.environ.get('SERVER_URL', 'https://orbit-server-90x3.onrender.com')
+POLL_INTERVAL = int(os.environ.get('POLL_INTERVAL', 60))  # Poll every 60 seconds
+NOTIFICATION_DELAY = int(os.environ.get('NOTIFICATION_DELAY', 300))  # 5 minutes
+
+# Track completion IDs and their submission times
+completion_timestamps = {}
 
 def send_imessage(phone_numbers, message):
     """
@@ -107,8 +117,80 @@ def send_imessage(phone_numbers, message):
         logging.error(f"Failed to execute AppleScript: {e}")
         return False
 
+def poll_and_notify():
+    """
+    Continuously polls the server for pending notifications and sends them.
+    Implements a 5-minute delay before sending notifications.
+    """
+    logging.info(f"Bot polling started. Poll interval: {POLL_INTERVAL}s, Notification delay: {NOTIFICATION_DELAY}s")
+    
+    while True:
+        try:
+            # Poll the server for pending notifications
+            response = requests.get(f'{SERVER_URL}/api/bot/poll', timeout=10)
+            
+            if response.status_code != 200:
+                logging.warning(f"Poll failed with status {response.status_code}")
+                time.sleep(POLL_INTERVAL)
+                continue
+            
+            data = response.json()
+            pending = data.get('pending', [])
+            
+            if pending:
+                logging.info(f"Found {len(pending)} pending notifications")
+            
+            # Process each pending notification
+            for notification in pending:
+                completion_id = notification.get('completion_id')
+                team_name = notification.get('team_name')
+                quest_name = notification.get('quest_name')
+                stars_awarded = notification.get('stars_awarded')
+                phone_numbers = notification.get('phone_numbers', [])
+                
+                # Track submission time if not already tracked
+                if completion_id not in completion_timestamps:
+                    completion_timestamps[completion_id] = datetime.now()
+                    logging.info(f"Tracking completion {completion_id} for team {team_name}")
+                    continue
+                
+                # Check if 5 minutes have passed since submission
+                submission_time = completion_timestamps[completion_id]
+                elapsed = (datetime.now() - submission_time).total_seconds()
+                
+                if elapsed < NOTIFICATION_DELAY:
+                    logging.info(f"Completion {completion_id} waiting {NOTIFICATION_DELAY - elapsed:.0f}s more before notification")
+                    continue
+                
+                # 5 minutes have passed, send the notification
+                message = f"✨ Stars awarded! You earned {stars_awarded} stars for '{quest_name}'! ✨"
+                
+                if send_imessage(phone_numbers, message):
+                    # Mark as notified in the database
+                    try:
+                        mark_response = requests.post(
+                            f'{SERVER_URL}/api/bot/mark-notified',
+                            json={'completion_id': completion_id},
+                            timeout=10
+                        )
+                        if mark_response.status_code == 200:
+                            logging.info(f"Marked completion {completion_id} as notified")
+                            del completion_timestamps[completion_id]
+                        else:
+                            logging.warning(f"Failed to mark {completion_id} as notified: {mark_response.status_code}")
+                    except Exception as e:
+                        logging.error(f"Error marking notified: {e}")
+                else:
+                    logging.error(f"Failed to send iMessage for completion {completion_id}")
+        
+        except Exception as e:
+            logging.error(f"Error in polling loop: {e}")
+        
+        time.sleep(POLL_INTERVAL)
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
+    """Legacy webhook endpoint for backward compatibility."""
     data = request.get_json()
     if not data:
         return jsonify({"error": "No data provided"}), 400
@@ -132,6 +214,13 @@ def health():
     return jsonify({"status": "ok", "bot": "Orbit iMessage Bot"}), 200
 
 if __name__ == '__main__':
-    print("\nStarting Orbit iMessage Bot on port 5000...")
-    print("Make sure to run 'ngrok http 5000' in another terminal window.\n")
-    app.run(port=5000)
+    # Start polling thread
+    polling_thread = threading.Thread(target=poll_and_notify, daemon=True)
+    polling_thread.start()
+    
+    print("\nStarting Orbit iMessage Bot...")
+    print(f"Server URL: {SERVER_URL}")
+    print(f"Poll interval: {POLL_INTERVAL}s")
+    print(f"Notification delay: {NOTIFICATION_DELAY}s\n")
+    
+    app.run(port=5000, debug=False)

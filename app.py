@@ -91,6 +91,11 @@ def init_db():
         cur.execute("ALTER TABLE waitlist ALTER COLUMN t1_phone DROP NOT NULL")
     except Exception:
         pass
+    # Migration: Add all_phone_numbers column if it doesn't exist
+    try:
+        cur.execute("ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS all_phone_numbers TEXT[] DEFAULT '{}'")
+    except Exception:
+        pass
     # Update quest_completions status to pending
     try:
         cur.execute("ALTER TABLE quest_completions ALTER COLUMN status SET DEFAULT 'pending'")
@@ -98,13 +103,27 @@ def init_db():
         pass
     # Migration: Add stars_awarded to quest_completions
     try:
-        cur.execute("ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS stars_awarded INTEGER DEFAULT 0")
+        cur.execute("ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS stars_awarded INTEGER")
     except Exception:
         pass
-    # Migration: Add consent columns to quest_completions
+    # Migration: Add consent_under_21 to quest_completions
     try:
-        cur.execute("ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS consent_under_21 BOOLEAN DEFAULT FALSE")
-        cur.execute("ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS consent_promo BOOLEAN DEFAULT FALSE")
+        cur.execute("ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS consent_under_21 BOOLEAN")
+    except Exception:
+        pass
+    # Migration: Add consent_promo to quest_completions
+    try:
+        cur.execute("ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS consent_promo BOOLEAN")
+    except Exception:
+        pass
+    # Migration: Add notified to quest_completions
+    try:
+        cur.execute("ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS notified BOOLEAN DEFAULT FALSE")
+    except Exception:
+        pass
+    # Migration: Add notified_at to quest_completions
+    try:
+        cur.execute("ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS notified_at TIMESTAMPTZ")
     except Exception:
         pass
     cur.execute("""
@@ -153,10 +172,12 @@ def init_db():
             quest_id    INTEGER REFERENCES quests(id),
             photo_url   TEXT,
             status      TEXT NOT NULL DEFAULT 'pending',
-            stars_awarded INTEGER DEFAULT 0,
-            consent_under_21 BOOLEAN DEFAULT FALSE,
-            consent_promo BOOLEAN DEFAULT FALSE,
-            created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+              stars_awarded   INTEGER,
+            consent_under_21 BOOLEAN,
+            consent_promo   BOOLEAN,
+            notified        BOOLEAN DEFAULT FALSE,
+            notified_at     TIMESTAMPTZ,
+            created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     """)
     cur.execute("""
@@ -496,6 +517,15 @@ def api_submit_quest():
             cur.close()
             conn.close()
             return jsonify({'success': False, 'error': 'Invalid team name or secret code.'}), 401
+        
+        # Get the quest's default star value
+        cur.execute("SELECT stars FROM quests WHERE id = %s", (quest_id,))
+        quest_row = cur.fetchone()
+        if not quest_row:
+            cur.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Quest not found.'}), 404
+        stars_awarded = quest_row['stars']
             
         # Save file
         if file and allowed_file(file.filename):
@@ -504,12 +534,12 @@ def api_submit_quest():
             file.save(file_path)
             photo_url = f"/static/uploads/{filename}"
             
-            # Insert completion with PENDING status
+            # Insert completion with APPROVED status and stars_awarded set immediately
             cur.execute("""
-                INSERT INTO quest_completions (team_name, quest_id, photo_url, status, consent_under_21, consent_promo)
-                VALUES (%s, %s, %s, 'pending', %s, %s)
+                INSERT INTO quest_completions (team_name, quest_id, photo_url, status, stars_awarded, consent_under_21, consent_promo, notified)
+                VALUES (%s, %s, %s, 'approved', %s, %s, %s, FALSE)
                 RETURNING id
-            """, (team_name, quest_id, photo_url, consent_under_21, consent_promo))
+            """, (team_name, quest_id, photo_url, stars_awarded, consent_under_21, consent_promo))
             completion_id = cur.fetchone()['id']
             
             conn.commit()
@@ -959,6 +989,71 @@ def admin_signups():
         return jsonify({'count': len(rows), 'signups': [dict(r) for r in rows]})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/bot/poll', methods=['GET'])
+def bot_poll():
+    """Bot polling endpoint: returns pending notifications for teams."""
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        
+        # Get all approved quest completions that haven't been notified yet
+        cur.execute("""
+            SELECT qc.id, qc.team_name, qc.quest_id, qc.stars_awarded, q.name as quest_name,
+                   w.all_phone_numbers
+            FROM quest_completions qc
+            JOIN quests q ON qc.quest_id = q.id
+            JOIN waitlist w ON qc.team_name = w.team_name
+            WHERE qc.status = 'approved' AND qc.notified = FALSE
+            ORDER BY qc.created_at ASC
+        """)
+        pending = cur.fetchall()
+        
+        result = []
+        for row in pending:
+            result.append({
+                'completion_id': row['id'],
+                'team_name': row['team_name'],
+                'quest_name': row['quest_name'],
+                'stars_awarded': row['stars_awarded'],
+                'phone_numbers': row['all_phone_numbers'] or []
+            })
+        
+        cur.close()
+        conn.close()
+        
+        return jsonify({'pending': result, 'count': len(result)})
+    except Exception as e:
+        logging.error(f"Bot poll error: {e}")
+        return jsonify({'error': 'Database error', 'pending': []}), 500
+
+@app.route('/api/bot/mark-notified', methods=['POST'])
+def bot_mark_notified():
+    """Mark a completion as notified by the bot."""
+    data = request.get_json()
+    completion_id = data.get('completion_id')
+    
+    if not completion_id:
+        return jsonify({'success': False, 'error': 'completion_id required'}), 400
+    
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            UPDATE quest_completions
+            SET notified = TRUE, notified_at = NOW()
+            WHERE id = %s
+        """, (completion_id,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Mark notified error: {e}")
+        return jsonify({'success': False, 'error': 'Database error'}), 500
 
 @app.route('/health')
 def health():
