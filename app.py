@@ -7,7 +7,7 @@ import threading
 import time
 import random
 import string
-import requests as http_requests
+import requests
 from datetime import datetime
 from werkzeug.utils import secure_filename
 
@@ -59,7 +59,7 @@ def init_db():
             class_year      TEXT,
             team_secret_code TEXT,
             is_active BOOLEAN DEFAULT TRUE
-        )""")},{find:
+        )""")
     # Migration: Add teammates column if it doesn't exist
     try:
         cur.execute("ALTER TABLE waitlist ADD COLUMN IF NOT EXISTS teammates JSONB DEFAULT '[]'")
@@ -267,7 +267,7 @@ stay close.
     }
 
     try:
-        resp = http_requests.post(
+        resp = requests.post(
             "https://api.resend.com/emails",
             headers={
                 "Authorization": f"Bearer {RESEND_API_KEY}",
@@ -571,7 +571,7 @@ def api_update_submission():
             # Trigger webhook to local bot
             webhook_url = os.environ.get('BOT_WEBHOOK_URL', 'http://localhost:5000/webhook')
             try:
-                http_requests.post(webhook_url, json={
+                requests.post(webhook_url, json={
                     'event': 'quest_approved',
                     'team_name': team_name,
                     'quest_name': quest_name,
@@ -633,7 +633,7 @@ def api_send_message():
                 # Trigger webhook
                 webhook_url = os.environ.get('BOT_WEBHOOK_URL', 'http://localhost:5000/webhook')
                 try:
-                    http_requests.post(webhook_url, json={
+                    requests.post(webhook_url, json={
                         'event': 'manual_message',
                         'team_name': t['team_name'],
                         'message': message,
@@ -922,7 +922,7 @@ def api_signup():
         conn.commit()
 
         try:
-            http_requests.post(webhook_url, json={
+            requests.post(webhook_url, json={
                 "event": "acceptance",
                 "team_name": team_name,
                 "message": acceptance_message,
@@ -976,7 +976,7 @@ def _keep_alive():
     url = os.environ.get('RENDER_EXTERNAL_URL', 'https://orbit-server-90x3.onrender.com') + '/health'
     while True:
         try:
-            http_requests.get(url, timeout=10)
+            requests.get(url, timeout=10)
             logging.info(f"Keep-alive ping sent to {url}")
         except Exception as e:
             logging.warning(f"Keep-alive ping failed: {e}")
