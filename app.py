@@ -3,6 +3,7 @@ import re
 import logging
 import traceback
 import requests
+import json
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template, redirect, url_for
 
@@ -97,7 +98,7 @@ def send_confirmation_email(to_email, name, team_name):
 
     subject = "you're on the Amazing Race Harvard waitlist"
 
-    html_body = """<!DOCTYPE html>
+    html_body = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -113,7 +114,7 @@ def send_confirmation_email(to_email, name, team_name):
   </td></tr>
   <tr><td style="padding:40px">
     <h1 style="margin:0 0 16px;font-size:26px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px">you are on the waitlist.</h1>
-    <p style="margin:0 0 12px;font-size:16px;color:#444;line-height:1.7">hey """ + name + """ &mdash; your team <strong style="color:#0a0a0a">""" + team_name + """</strong> is locked in.</p>
+    <p style="margin:0 0 12px;font-size:16px;color:#444;line-height:1.7">hey {name} &mdash; your team <strong style="color:#0a0a0a">{team_name}</strong> is locked in.</p>
     <p style="margin:0 0 12px;font-size:16px;color:#444;line-height:1.7">your side quest drops soon. 10 days, infinite challenges, earn stars to win.</p>
     <p style="margin:0 0 32px;font-size:16px;color:#444;line-height:1.7">stay close.</p>
     <table cellpadding="0" cellspacing="0">
@@ -277,24 +278,38 @@ def api_bot_poll():
     try:
         conn = get_db()
         cur = conn.cursor()
-        # Fetch approved completions that haven't been notified
+        
+        # 1. Fetch approved completions (Stars)
         cur.execute("""
-            SELECT qc.id as completion_id, qc.team_name, q.name as quest_name, qc.stars_awarded, w.all_phone_numbers, qc.created_at
+            SELECT qc.id as completion_id, qc.team_name, q.name as quest_name, qc.stars_awarded, w.all_phone_numbers, qc.created_at, 'stars' as type
             FROM quest_completions qc
             JOIN quests q ON qc.quest_id = q.id
             JOIN waitlist w ON qc.team_name = w.team_name
             WHERE qc.status = 'approved' AND qc.notified = FALSE
         """)
-        pending = cur.fetchall()
+        stars_pending = cur.fetchall()
+        
+        # 2. Fetch manual admin messages
+        cur.execute("""
+            SELECT id as message_id, team_name, message_text, phone_numbers, created_at, 'manual' as type
+            FROM message_log
+            WHERE status = 'pending'
+        """)
+        manual_pending = cur.fetchall()
+        
         cur.close()
         conn.close()
         
-        # Convert datetime to string for JSON
-        for p in pending:
-            if p['created_at']:
-                p['created_at'] = p['created_at'].isoformat()
+        # Combine and format
+        results = []
+        for p in stars_pending:
+            p['created_at'] = p['created_at'].isoformat() if p['created_at'] else None
+            results.append(p)
+        for m in manual_pending:
+            m['created_at'] = m['created_at'].isoformat() if m['created_at'] else None
+            results.append(m)
                 
-        return jsonify(pending)
+        return jsonify(results)
     except Exception as e:
         logging.error(f"Bot poll error: {e}")
         return jsonify([]), 500
@@ -303,13 +318,15 @@ def api_bot_poll():
 def api_bot_mark_notified():
     data = request.get_json() or {}
     completion_id = data.get('completion_id')
-    if not completion_id:
-        return jsonify({'success': False}), 400
-        
+    message_id = data.get('message_id')
+    
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("UPDATE quest_completions SET notified = TRUE, notified_at = NOW() WHERE id = %s", (completion_id,))
+        if completion_id:
+            cur.execute("UPDATE quest_completions SET notified = TRUE, notified_at = NOW() WHERE id = %s", (completion_id,))
+        if message_id:
+            cur.execute("UPDATE message_log SET status = 'sent' WHERE id = %s", (message_id,))
         conn.commit()
         cur.close()
         conn.close()
@@ -317,6 +334,119 @@ def api_bot_mark_notified():
     except Exception as e:
         logging.error(f"Mark notified error: {e}")
         return jsonify({'success': False}), 500
+
+@app.route('/admin/bot')
+def admin_bot():
+    secret = request.args.get('secret', '')
+    admin_secret = os.environ.get('ADMIN_SECRET', 'HarvardRace2026_Secure_Admin_Access')
+    if admin_secret and secret != admin_secret:
+        return "Unauthorized", 401
+    return render_template('admin_bot.html')
+
+@app.route('/api/admin/send-message', methods=['POST'])
+def api_send_message():
+    data = request.get_json()
+    msg_type = data.get('message_type', 'custom')
+    message = data.get('message_template', '')
+    team = data.get('send_to_team', 'all')
+    
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        
+        if team == 'all':
+            cur.execute("SELECT team_name, all_phone_numbers FROM waitlist WHERE is_active = TRUE")
+        else:
+            cur.execute("SELECT team_name, all_phone_numbers FROM waitlist WHERE team_name = %s AND is_active = TRUE", (team,))
+            
+        teams = cur.fetchall()
+        count = 0
+        for t in teams:
+            phone_numbers = t['all_phone_numbers']
+            if phone_numbers:
+                cur.execute("""
+                    INSERT INTO message_log (team_name, event_type, message_text, phone_numbers, status)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (t['team_name'], msg_type, message, phone_numbers, 'pending'))
+                count += 1
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True, 'count': count})
+    except Exception as e:
+        logging.error(f"Send message error: {e}")
+        return jsonify({'success': False, 'error': 'Database error.'}), 500
+
+@app.route('/api/admin/message-log')
+def api_message_log():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM message_log ORDER BY created_at DESC LIMIT 50")
+        messages = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify([dict(m) for m in messages])
+    except Exception as e:
+        logging.error(f"Message log error: {e}")
+        return jsonify([]), 500
+
+@app.route('/api/admin/recent-submissions')
+def api_recent_submissions():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT qc.*, q.name as quest_name, q.stars
+            FROM quest_completions qc
+            JOIN quests q ON qc.quest_id = q.id
+            ORDER BY qc.created_at DESC
+            LIMIT 20
+        """)
+        submissions = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify([dict(s) for s in submissions])
+    except Exception as e:
+        logging.error(f"Recent submissions error: {e}")
+        return jsonify([]), 500
+
+@app.route('/api/admin/teams')
+def api_admin_teams():
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT id, team_name, name, phone, teammates, all_phone_numbers, team_secret_code FROM waitlist WHERE is_active = TRUE ORDER BY created_at DESC")
+        teams = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify([dict(t) for t in teams])
+    except Exception as e:
+        logging.error(f"Admin teams error: {e}")
+        return jsonify([]), 500
+
+@app.route('/api/admin/delete-team', methods=['POST'])
+def api_delete_team():
+    data = request.get_json()
+    team_id = data.get('id')
+    secret = request.args.get('secret', '')
+    admin_secret = os.environ.get('ADMIN_SECRET', 'HarvardRace2026_Secure_Admin_Access')
+    
+    if secret != admin_secret:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("UPDATE waitlist SET is_active = FALSE WHERE id = %s", (team_id,))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Delete team error: {e}")
+        return jsonify({'success': False, 'error': 'Database error.'}), 500
 
 @app.route('/api/signup', methods=['POST'])
 def api_signup():

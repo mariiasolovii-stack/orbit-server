@@ -249,22 +249,6 @@
     <!-- Alerts -->
     <div id="alertBox"></div>
 
-    <!-- Game Schedule -->
-    <div class="card">
-      <div class="card-title">Game Schedule</div>
-      <div class="grid">
-        <div class="form-group">
-          <label>Game Start Date</label>
-          <input type="date" id="startDate" value="2026-05-02" />
-        </div>
-        <div class="form-group">
-          <label>Game End Date</label>
-          <input type="date" id="endDate" value="2026-05-13" />
-        </div>
-      </div>
-      <button class="btn btn-primary" onclick="saveGameSchedule()">Save Schedule</button>
-    </div>
-
     <!-- Manual Message Triggers -->
     <div class="card">
       <div class="card-title">Send Messages</div>
@@ -285,51 +269,19 @@
       </div>
 
       <div class="form-group">
-        <label>Send To (Team Name or 'all')</label>
-        <input type="text" id="sendToTeam" placeholder="all" />
+        <label>Target Team</label>
+        <div style="display: flex; gap: 10px;">
+          <select id="teamSelect" style="flex: 1;">
+            <option value="all">Broadcast to ALL Teams</option>
+          </select>
+          <button class="btn btn-secondary" onclick="setTargetAll()">Select All</button>
+        </div>
       </div>
 
       <div class="button-group">
         <button class="btn btn-primary" onclick="sendMessage()">Send Now</button>
-        <button class="btn btn-secondary" onclick="scheduleMessage()">Schedule</button>
+        <button class="btn btn-secondary" onclick="refreshAll()">Refresh Data</button>
       </div>
-    </div>
-
-    <!-- Quest Batch Management -->
-    <div class="card">
-      <div class="card-title">Quest Batches</div>
-      
-      <div class="grid">
-        <div class="form-group">
-          <label>Batch Number</label>
-          <input type="number" id="batchNum" min="1" max="5" value="1" />
-        </div>
-        <div class="form-group">
-          <label>Release Time (11:59pm)</label>
-          <input type="date" id="batchDate" />
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Quests in This Batch (comma-separated IDs)</label>
-        <input type="text" id="batchQuests" placeholder="1,2,3,4,5" />
-      </div>
-
-      <button class="btn btn-primary" onclick="createBatch()">Create Batch</button>
-
-      <table style="margin-top: 24px;">
-        <thead>
-          <tr>
-            <th>Batch</th>
-            <th>Release Date</th>
-            <th>Quests</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="batchList">
-          <!-- Populated by JavaScript -->
-        </tbody>
-      </table>
     </div>
 
     <!-- Message Log -->
@@ -414,14 +366,16 @@ Leaderboard: joinorbit.one/leaderboard`,
       setTimeout(() => alert.remove(), 5000);
     }
 
-    async function sendMessage(messageType, messageTemplate, sendToTeam, phoneNumbers) {
-      // If called from quick action, use passed values
-      messageType = messageType || document.getElementById("messageType").value;
-      messageTemplate = messageTemplate || document.getElementById("messageTemplate").value;
-      sendToTeam = sendToTeam || document.getElementById("sendToTeam").value;
-      phoneNumbers = phoneNumbers || []; // This will be populated from the team list or left empty for 'all'
+    function setTargetAll() {
+      document.getElementById('teamSelect').value = 'all';
+    }
 
-      if (!message.trim()) {
+    async function sendMessage() {
+      const messageType = document.getElementById("messageType").value;
+      const messageTemplate = document.getElementById("messageTemplate").value;
+      const sendToTeam = document.getElementById("teamSelect").value;
+
+      if (!messageTemplate.trim()) {
         showAlert('Please enter a message', 'error');
         return;
       }
@@ -430,12 +384,16 @@ Leaderboard: joinorbit.one/leaderboard`,
         const response = await fetch('/api/admin/send-message', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message_type: messageType, message_template: messageTemplate, send_to_team: sendToTeam, phone_numbers: phoneNumbers })
+          body: JSON.stringify({ 
+            message_type: messageType, 
+            message_template: messageTemplate, 
+            send_to_team: sendToTeam 
+          })
         });
 
         const result = await response.json();
         if (result.success) {
-          showAlert(`Message sent to ${result.count} team(s)!`);
+          showAlert(`Message queued for ${result.count} team(s)!`);
           refreshLog();
         } else {
           showAlert(result.error || 'Failed to send message', 'error');
@@ -445,66 +403,15 @@ Leaderboard: joinorbit.one/leaderboard`,
       }
     }
 
-    async function scheduleMessage() {
-      showAlert('Scheduling feature coming soon', 'error');
-    }
-
-    async function createBatch() {
-      const batchNum = document.getElementById('batchNum').value;
-      const batchDate = document.getElementById('batchDate').value;
-      const quests = document.getElementById('batchQuests').value;
-
-      if (!batchDate || !quests) {
-        showAlert('Please fill in all fields', 'error');
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/admin/create-batch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ batch_num: parseInt(batchNum), release_date: batchDate, quests: quests.split(',').map(q => parseInt(q.trim())) })
-        });
-
-        const result = await response.json();
-        if (result.success) {
-          showAlert('Batch created!');
-          loadBatches();
-        } else {
-          showAlert(result.error || 'Failed to create batch', 'error');
-        }
-      } catch (error) {
-        showAlert('Error creating batch', 'error');
-      }
-    }
-
-    async function loadBatches() {
-      try {
-        const response = await fetch('/api/admin/batches');
-        const batches = await response.json();
-        const list = document.getElementById('batchList');
-        list.innerHTML = batches.map(b => `
-          <tr>
-            <td>Batch ${b.batch_num}</td>
-            <td>${new Date(b.release_date).toLocaleDateString()}</td>
-            <td>${b.quests || 'N/A'}</td>
-            <td><span class="status-badge status-pending">Scheduled</span></td>
-          </tr>
-        `).join('');
-      } catch (error) {
-        console.error('Error loading batches:', error);
-      }
-    }
-
     async function refreshLog() {
       try {
         const response = await fetch('/api/admin/message-log');
         const messages = await response.json();
         const log = document.getElementById('messageLog');
         log.innerHTML = messages.map(m => `
-          <div class="log-entry ${m.status === 'sent' ? 'success' : 'error'}">
+          <div class="log-entry">
             <span class="log-time">${new Date(m.created_at).toLocaleTimeString()}</span> - 
-            ${m.team_name}: ${m.message_text}
+            <strong>${m.team_name}</strong>: ${m.message_text}
             <span class="status-badge status-${m.status}">${m.status}</span>
           </div>
         `).join('') || '<div class="log-entry">No messages yet</div>';
@@ -532,32 +439,24 @@ Leaderboard: joinorbit.one/leaderboard`,
       }
     }
 
-    async function saveGameSchedule() {
-      const startDate = document.getElementById('startDate').value;
-      const endDate = document.getElementById('endDate').value;
-
-      try {
-        const response = await fetch('/api/admin/game-schedule', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ start_date: startDate, end_date: endDate })
-        });
-
-        const result = await response.json();
-        if (result.success) {
-          showAlert('Game schedule saved!');
-        } else {
-          showAlert(result.error || 'Failed to save schedule', 'error');
-        }
-      } catch (error) {
-        showAlert('Error saving schedule', 'error');
-      }
-    }
-
     async function loadTeams() {
       try {
         const response = await fetch('/api/admin/teams');
         const teams = await response.json();
+        
+        // Update Dropdown
+        const select = document.getElementById('teamSelect');
+        const currentVal = select.value;
+        select.innerHTML = '<option value="all">Broadcast to ALL Teams</option>';
+        teams.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t.team_name;
+          opt.textContent = t.team_name;
+          select.appendChild(opt);
+        });
+        select.value = currentVal;
+
+        // Update Table
         const list = document.getElementById('teamList');
         list.innerHTML = teams.map(t => {
           const captainName = t.name;
@@ -573,10 +472,7 @@ Leaderboard: joinorbit.one/leaderboard`,
               <td>${allPhonesList}</td>
               <td><code>${t.team_secret_code}</code></td>
               <td>
-                <div class="button-group">
-                  <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 10px;" onclick="sendWelcomeToTeam(\'${t.team_name}\', \'${t.team_secret_code}\', \'${allPhonesList}\')">Send Welcome</button>
-                  <button class="btn btn-danger" style="padding: 4px 8px; font-size: 10px;" onclick="deleteTeam(${t.id}, \'${t.team_name}\')">Delete</button>
-                </div>
+                <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 10px;" onclick="selectTeam('${t.team_name}')">Select</button>
               </td>
             </tr>
           `;
@@ -586,45 +482,20 @@ Leaderboard: joinorbit.one/leaderboard`,
       }
     }
 
-    async function deleteTeam(id, name) {
-      if (!confirm(`Are you sure you want to delete ${name}? This will hide the team from the roster.`)) return;
-      
-      const secret = new URLSearchParams(window.location.search).get('secret');
-      try {
-        const response = await fetch(`/api/admin/delete-team?secret=${secret}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id })
-        });
-        const result = await response.json();
-        if (result.success) {
-          showAlert(`Team ${name} deleted (soft delete).`);
-          loadTeams();
-        } else {
-          showAlert(result.error || 'Failed to delete team', 'error');
-        }
-      } catch (error) {
-        showAlert('Error deleting team', 'error');
-      }
+    function selectTeam(name) {
+      document.getElementById('teamSelect').value = name;
+      document.getElementById('messageTemplate').focus();
     }
 
-    async function sendWelcomeToTeam(teamName, code, allPhonesString) {
-      const template = messageTemplates.acceptance.replace('[TEAM_CODE]', code);
-      document.getElementById('sendToTeam').value = teamName;
-      document.getElementById('messageTemplate').value = template;
-      document.getElementById('messageType').value = 'acceptance';
-      
-      if (confirm(`Send welcome message to ${teamName}?`)) {
-        const phoneNumbersArray = allPhonesString.split(', ').filter(Boolean);
-        await sendMessage("acceptance", messageTemplates.acceptance.replace("[TEAM_CODE]", code), teamName, phoneNumbersArray);
-      }
+    function refreshAll() {
+      loadTeams();
+      refreshLog();
+      loadSubmissions();
     }
 
     // Initialize
     updateMessageTemplate();
-    loadBatches();
-    loadSubmissions();
-    loadTeams();
+    refreshAll();
     setInterval(refreshLog, 10000); // Refresh every 10 seconds
     setInterval(loadTeams, 30000); // Refresh teams every 30 seconds
   </script>
