@@ -58,14 +58,12 @@ def send_imessage(phone_numbers, message):
         '''
     else:
         # Group chat script
-        # This script attempts to find an existing chat with these participants or creates a new one
         participants_list = ", ".join([f'"{num}"' for num in cleaned_numbers])
         script = f'''
         tell application "Messages"
             set targetService to 1st service whose service type is iMessage
             set participantPhones to {{{participants_list}}}
             
-            -- Try to find an existing chat with these exact participants
             set foundChat to missing value
             set allChats to every chat
             repeat with aChat in allChats
@@ -75,7 +73,6 @@ def send_imessage(phone_numbers, message):
                     copy handle of aParticipant to end of chatPhones
                 end repeat
                 
-                -- Check if participants match (simplified check)
                 set matchCount to 0
                 repeat with p in participantPhones
                     if chatPhones contains p then
@@ -92,7 +89,6 @@ def send_imessage(phone_numbers, message):
             if foundChat is not missing value then
                 send "{escaped_message}" to foundChat
             else
-                -- Create new group chat by sending to the list of buddies
                 set targetBuddies to {{}}
                 repeat with p in participantPhones
                     copy buddy p of targetService to end of targetBuddies
@@ -120,7 +116,6 @@ def send_imessage(phone_numbers, message):
 def poll_and_notify():
     """
     Continuously polls the server for pending notifications and sends them.
-    Implements a 5-minute delay before sending notifications.
     """
     logging.info(f"Bot polling started. Poll interval: {POLL_INTERVAL}s, Notification delay: {NOTIFICATION_DELAY}s")
     
@@ -134,80 +129,69 @@ def poll_and_notify():
                 time.sleep(POLL_INTERVAL)
                 continue
             
-            data = response.json()
-            pending = data.get('pending', [])
+            # The server returns a list of notifications directly
+            pending = response.json()
             
             if pending:
                 logging.info(f"Found {len(pending)} pending notifications")
             
             # Process each pending notification
             for notification in pending:
-                completion_id = notification.get('completion_id')
-                team_name = notification.get('team_name')
-                quest_name = notification.get('quest_name')
-                stars_awarded = notification.get('stars_awarded')
-                phone_numbers = notification.get('phone_numbers', [])
+                msg_type = notification.get('type')
                 
-                # Track submission time if not already tracked
-                if completion_id not in completion_timestamps:
-                    completion_timestamps[completion_id] = datetime.now()
-                    logging.info(f"Tracking completion {completion_id} for team {team_name}")
-                    continue
-                
-                # Check if 5 minutes have passed since submission
-                submission_time = completion_timestamps[completion_id]
-                elapsed = (datetime.now() - submission_time).total_seconds()
-                
-                if elapsed < NOTIFICATION_DELAY:
-                    logging.info(f"Completion {completion_id} waiting {NOTIFICATION_DELAY - elapsed:.0f}s more before notification")
-                    continue
-                
-                # 5 minutes have passed, send the notification
-                message = f"✨ Stars awarded! You earned {stars_awarded} stars for '{quest_name}'! ✨"
-                
-                if send_imessage(phone_numbers, message):
-                    # Mark as notified in the database
-                    try:
-                        mark_response = requests.post(
-                            f'{SERVER_URL}/api/bot/mark-notified',
-                            json={'completion_id': completion_id},
-                            timeout=10
-                        )
-                        if mark_response.status_code == 200:
+                if msg_type == 'stars':
+                    # Handle Quest Approvals (with 5-minute delay)
+                    completion_id = notification.get('completion_id')
+                    team_name = notification.get('team_name')
+                    quest_name = notification.get('quest_name')
+                    stars_awarded = notification.get('stars_awarded')
+                    phone_numbers = notification.get('all_phone_numbers', [])
+                    
+                    # Track submission time if not already tracked
+                    if completion_id not in completion_timestamps:
+                        completion_timestamps[completion_id] = datetime.now()
+                        logging.info(f"Tracking completion {completion_id} for team {team_name}")
+                        continue
+                    
+                    # Check if 5 minutes have passed since submission
+                    submission_time = completion_timestamps[completion_id]
+                    elapsed = (datetime.now() - submission_time).total_seconds()
+                    
+                    if elapsed < NOTIFICATION_DELAY:
+                        logging.info(f"Completion {completion_id} waiting {NOTIFICATION_DELAY - elapsed:.0f}s more before notification")
+                        continue
+                    
+                    # 5 minutes have passed, send the notification
+                    message = f"✨ Stars awarded! You earned {stars_awarded} stars for '{quest_name}'! ✨"
+                    
+                    if send_imessage(phone_numbers, message):
+                        try:
+                            requests.post(f'{SERVER_URL}/api/bot/mark-notified', json={'completion_id': completion_id}, timeout=10)
                             logging.info(f"Marked completion {completion_id} as notified")
                             del completion_timestamps[completion_id]
-                        else:
-                            logging.warning(f"Failed to mark {completion_id} as notified: {mark_response.status_code}")
-                    except Exception as e:
-                        logging.error(f"Error marking notified: {e}")
-                else:
-                    logging.error(f"Failed to send iMessage for completion {completion_id}")
+                        except Exception as e:
+                            logging.error(f"Error marking notified: {e}")
+                
+                elif msg_type == 'manual':
+                    # Handle Manual Admin Messages (Immediate)
+                    message_id = notification.get('message_id')
+                    team_name = notification.get('team_name')
+                    message_text = notification.get('message_text')
+                    phone_numbers = notification.get('phone_numbers', [])
+                    
+                    logging.info(f"Processing manual message {message_id} for team {team_name}")
+                    
+                    if send_imessage(phone_numbers, message_text):
+                        try:
+                            requests.post(f'{SERVER_URL}/api/bot/mark-notified', json={'message_id': message_id}, timeout=10)
+                            logging.info(f"Marked manual message {message_id} as sent")
+                        except Exception as e:
+                            logging.error(f"Error marking manual message notified: {e}")
         
         except Exception as e:
             logging.error(f"Error in polling loop: {e}")
         
         time.sleep(POLL_INTERVAL)
-
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    """Legacy webhook endpoint for backward compatibility."""
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
-    
-    event_type = data.get('event')
-    team_name = data.get('team_name')
-    message = data.get('message')
-    phone_numbers = data.get('phone_numbers', [])
-    
-    if not phone_numbers or not message:
-        return jsonify({"error": "Missing phone_numbers or message"}), 400
-    
-    # Run sending in a separate thread to avoid blocking the webhook response
-    thread = threading.Thread(target=send_imessage, args=(phone_numbers, message))
-    thread.start()
-    
-    return jsonify({"status": "queued", "team": team_name, "event": event_type}), 200
 
 @app.route('/health', methods=['GET'])
 def health():
