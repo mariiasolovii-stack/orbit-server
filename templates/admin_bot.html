@@ -461,7 +461,7 @@ Leaderboard: joinorbit.one/leaderboard`,
         list.innerHTML = teams.map(t => {
           const captainName = t.name;
           const captainPhone = t.phone;
-          const teammatesData = t.teammates ? JSON.parse(t.teammates) : [];
+          const teammatesData = t.teammates ? (typeof t.teammates === 'string' ? JSON.parse(t.teammates) : t.teammates) : [];
           const teammatesList = teammatesData.map(tm => `${tm.name} (${tm.phone})`).join(', ');
           const allPhonesList = t.all_phone_numbers ? t.all_phone_numbers.join(', ') : '';
           return `
@@ -484,7 +484,7 @@ Leaderboard: joinorbit.one/leaderboard`,
 
     function selectTeam(name) {
       document.getElementById('teamSelect').value = name;
-      document.getElementById('messageContent').focus();
+      document.getElementById('messageTemplate').focus();
     }
 
     function refreshAll() {
