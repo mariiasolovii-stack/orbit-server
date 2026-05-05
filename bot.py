@@ -59,9 +59,16 @@ def send_imessage(phone_numbers, message):
     Sends an iMessage to a group of phone numbers using AppleScript.
     Uses a more robust method for group chats.
     """
-    # Clean phone numbers: remove spaces, dashes, etc.
-    cleaned_numbers = [str(num).strip().replace(" ", "").replace("-", "").replace("(", "").replace(")", "") for num in phone_numbers]
-    cleaned_numbers = [num for num in cleaned_numbers if num]
+    # Clean and format phone numbers: ensure +1 for US numbers
+    cleaned_numbers = []
+    for num in phone_numbers:
+        digits = "".join(filter(str.isdigit, str(num)))
+        if len(digits) == 10:
+            cleaned_numbers.append("+1" + digits)
+        elif len(digits) == 11 and digits.startswith('1'):
+            cleaned_numbers.append("+" + digits)
+        elif digits:
+            cleaned_numbers.append("+" + digits if not str(num).startswith('+') else str(num))
     
     if not cleaned_numbers:
         logging.error("No valid phone numbers provided.")
