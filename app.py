@@ -388,6 +388,14 @@ def admin_bot():
         return "Unauthorized", 401
     return render_template('admin_bot.html', game_state=game_state, admin_secret=admin_secret)
 
+@app.route('/admin/quests')
+def admin_quests():
+    secret = request.args.get('secret', '')
+    admin_secret = os.environ.get('ADMIN_SECRET', 'HarvardRace2026_Secure_Admin_Access')
+    if admin_secret and secret != admin_secret:
+        return "Unauthorized", 401
+    return render_template('admin_quests.html', admin_secret=admin_secret)
+
 @app.route('/api/admin/update-game-state', methods=['POST'])
 def api_update_game_state():
     secret = request.args.get('secret', '')
@@ -402,6 +410,63 @@ def api_update_game_state():
         game_state['maintenance_mode'] = data['maintenance_mode']
     
     return jsonify({'success': True, 'game_state': game_state})
+
+@app.route('/api/admin/generate-ai-message', methods=['POST'])
+def api_generate_ai_message():
+    secret = request.args.get('secret', '')
+    admin_secret = os.environ.get('ADMIN_SECRET', 'HarvardRace2026_Secure_Admin_Access')
+    if admin_secret and secret != admin_secret:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+    data = request.get_json()
+    user_prompt = data.get('prompt', '')
+    
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+        response = client.messages.create(
+            model="claude-3-5-sonnet-latest",
+            max_tokens=300,
+            system="You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive. Draft a short, punchy iMessage based on the user's request.",
+            messages=[{"role": "user", "content": user_prompt}]
+        )
+        return jsonify({'success': True, 'message': response.content[0].text})
+    except Exception as e:
+        logging.error(f"AI Generation error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/trigger-event', methods=['POST'])
+def api_trigger_event():
+    secret = request.args.get('secret', '')
+    admin_secret = os.environ.get('ADMIN_SECRET', 'HarvardRace2026_Secure_Admin_Access')
+    if admin_secret and secret != admin_secret:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+    data = request.get_json()
+    event_type = data.get('event_type')
+    
+    # In a real scenario, we'd trigger the bot. 
+    # For now, we'll log a special event that the bot will pick up.
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT team_name, all_phone_numbers FROM waitlist WHERE is_active = TRUE")
+        teams = cur.fetchall()
+        
+        message = f"TRIGGERED_EVENT:{event_type}"
+        for t in teams:
+            cur.execute("""
+                INSERT INTO message_log (team_name, event_type, message_text, phone_numbers, status)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (t['team_name'], 'manual', message, t['all_phone_numbers'], 'pending'))
+            
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Trigger event error: {e}")
+        return jsonify({'success': False}), 500
 
 @app.route('/api/admin/send-message', methods=['POST'])
 def api_send_message():

@@ -283,23 +283,30 @@
       </div>
     </div>
 
-    <!-- Manual Message Triggers -->
+    <!-- AI Message Generator -->
     <div class="card">
-      <div class="card-title">Send Messages</div>
+      <div class="card-title">AI Message Generator ✦</div>
       
       <div class="form-group">
-        <label>Message Type</label>
-        <select id="messageType" onchange="updateMessageTemplate()">
-          <option value="acceptance">Team Acceptance</option>
-          <option value="quest_batch">Quest Batch Release</option>
-          <option value="reminder">Daily Reminder</option>
-          <option value="custom">Custom Message</option>
-        </select>
+        <label>What do you want to say?</label>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="aiPrompt" placeholder="e.g. Congratulate everyone on a great Day 1 and remind them about the Charles river quest" style="flex: 1;">
+          <button class="btn btn-secondary" onclick="generateAIMessage()">Draft with Claude</button>
+        </div>
       </div>
 
       <div class="form-group">
-        <label>Message Template</label>
-        <textarea id="messageTemplate" placeholder="Message will appear here..."></textarea>
+        <label>Final Message (Review & Edit)</label>
+        <textarea id="messageTemplate" placeholder="AI will draft your message here..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Message Type</label>
+        <select id="messageType">
+          <option value="custom">Custom Broadcast</option>
+          <option value="reminder">Daily Reminder</option>
+          <option value="quest_batch">Quest Release</option>
+        </select>
       </div>
 
       <div class="form-group">
@@ -316,6 +323,17 @@
         <button class="btn btn-primary" onclick="sendMessage()">Send Now</button>
         <button class="btn btn-secondary" onclick="refreshAll()">Refresh Data</button>
       </div>
+    </div>
+
+    <!-- Instant Triggers -->
+    <div class="card">
+      <div class="card-title">Instant Triggers (Manual Overrides)</div>
+      <div class="button-group">
+        <button class="btn btn-secondary" onclick="triggerEvent('challenge_drop')">🚀 Force Challenge Drop</button>
+        <button class="btn btn-secondary" onclick="triggerEvent('leaderboard_alert')">📊 Force Leaderboard Alert</button>
+        <button class="btn btn-secondary" onclick="triggerEvent('reminder')">⏰ Force Daily Reminder</button>
+      </div>
+      <p style="font-size: 11px; color: #888; margin-top: 12px;">These will bypass the schedule and send a broadcast immediately (if Maintenance is OFF).</p>
     </div>
 
     <!-- Message Log -->
@@ -424,6 +442,50 @@ Leaderboard: joinorbit.one/leaderboard`,
           location.reload();
         } else {
           showAlert('Error updating game state', 'error');
+        }
+      } catch (e) {
+        showAlert('Network error', 'error');
+      }
+    }
+
+    async function generateAIMessage() {
+      const prompt = document.getElementById('aiPrompt').value;
+      if (!prompt) return showAlert('Please enter a prompt', 'error');
+      
+      document.getElementById('messageTemplate').value = "Claude is thinking...";
+      
+      try {
+        const response = await fetch('/api/admin/generate-ai-message?secret={{ admin_secret }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        });
+        const result = await response.json();
+        if (result.success) {
+          document.getElementById('messageTemplate').value = result.message;
+        } else {
+          showAlert('AI generation failed', 'error');
+        }
+      } catch (e) {
+        showAlert('Network error', 'error');
+      }
+    }
+
+    async function triggerEvent(eventType) {
+      if (!confirm(`Are you sure you want to force a ${eventType} broadcast to ALL teams?`)) return;
+      
+      try {
+        const response = await fetch('/api/admin/trigger-event?secret={{ admin_secret }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event_type: eventType })
+        });
+        const result = await response.json();
+        if (result.success) {
+          showAlert('Event triggered successfully');
+          refreshLog();
+        } else {
+          showAlert('Error triggering event', 'error');
         }
       } catch (e) {
         showAlert('Network error', 'error');

@@ -309,11 +309,39 @@ def poll_and_notify():
                 
                 elif msg_type == 'manual':
                     message_id = notification.get('message_id')
-                    team_name = notification.get('team_name')
-                    message_text = notification.get('message_text')
+                    message = notification.get('message_text')
                     phone_numbers = notification.get('phone_numbers', [])
                     
-                    if send_imessage(phone_numbers, message_text):
+                    # Handle Instant Triggers
+                    if message.startswith("TRIGGERED_EVENT:"):
+                        event_type = message.split(":")[1]
+                        if event_type == 'challenge_drop':
+                            # Get current day's challenge
+                            day = get_current_race_day()
+                            challenge = CHALLENGE_SCHEDULE[day-1] if day <= len(CHALLENGE_SCHEDULE) else CHALLENGE_SCHEDULE[-1]
+                            message = f"🚀 CHALLENGE DROP: Day {challenge['day']} - {challenge['title']} 🚀\n\n{challenge['description']}\n\nGo to {SERVER_URL}/submit to upload your proof. Good luck."
+                        elif event_type == 'leaderboard_alert':
+                            try:
+                                res = requests.get(f'{SERVER_URL}/leaderboard', timeout=10)
+                                # Simplified for trigger
+                                message = f"📊 LEADERBOARD ALERT: The standings have shifted! Check the latest at {SERVER_URL}/leaderboard"
+                            except:
+                                message = f"📊 LEADERBOARD ALERT: The standings have shifted! Check the latest at {SERVER_URL}/leaderboard"
+                        elif event_type == 'reminder':
+                            day = get_current_race_day()
+                            prompt = f"Write a casual and competitive reminder for Day {day} of The Harvard Race. Remind teams that they can still complete old quests to earn stars. Keep it mysterious and motivating."
+                            try:
+                                response = client.messages.create(
+                                    model="claude-3-5-sonnet-latest",
+                                    max_tokens=150,
+                                    system="You are the Orbit Bot. Casual, competitive, and mysterious.",
+                                    messages=[{"role": "user", "content": prompt}]
+                                )
+                                message = response.content[0].text
+                            except:
+                                message = f"Day {day} is halfway through. Old quests are still open. Don't let the other teams pull ahead. ✦"
+
+                    if send_imessage(phone_numbers, message):
                         requests.post(f'{SERVER_URL}/api/bot/mark-notified', json={'message_id': message_id}, timeout=10)
                 
                 elif msg_type == 'welcome':
