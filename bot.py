@@ -341,6 +341,21 @@ def poll_and_notify():
                             except:
                                 message = f"Day {day} is halfway through. Old quests are still open. Don't let the other teams pull ahead. ✦"
 
+                    # Personalize manual/triggered messages
+                    if "[TEAM_NAME]" in message or "[MEMBER_NAMES]" in message:
+                        # Fetch team details for personalization
+                        try:
+                            res = requests.get(f'{SERVER_URL}/api/admin/teams', timeout=10)
+                            if res.status_code == 200:
+                                teams = res.json()
+                                team_data = next((t for t in teams if t['team_name'] == team_name), None)
+                                if team_data:
+                                    member_names = [team_data['name']] + [tm['name'] for tm in team_data['teammates'] if tm.get('name')]
+                                    names_str = ", ".join(member_names[:-1]) + f", and {member_names[-1]}" if len(member_names) > 1 else member_names[0]
+                                    message = message.replace("[TEAM_NAME]", team_name).replace("[MEMBER_NAMES]", names_str)
+                        except:
+                            pass
+
                     if send_imessage(phone_numbers, message):
                         requests.post(f'{SERVER_URL}/api/bot/mark-notified', json={'message_id': message_id}, timeout=10)
                 

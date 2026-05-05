@@ -249,6 +249,10 @@
                 {% if sub.status == 'pending' %}
                   <button class="btn btn-approve" onclick="updateStatus({{ sub.id }}, 'approved')">Approve</button>
                   <button class="btn btn-reject" onclick="updateStatus({{ sub.id }}, 'rejected')">Reject</button>
+                {% elif sub.status == 'approved' %}
+                  <button class="btn btn-reject" onclick="updateStatus({{ sub.id }}, 'rejected')">Revoke Stars</button>
+                {% elif sub.status == 'rejected' %}
+                  <button class="btn btn-approve" onclick="updateStatus({{ sub.id }}, 'approved')">Approve</button>
                 {% endif %}
               </td>
             </tr>
