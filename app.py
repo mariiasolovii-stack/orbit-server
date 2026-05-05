@@ -179,6 +179,12 @@ def is_harvard_email(email):
     email = email.lower().strip()
     return email.endswith('.harvard.edu') or email.endswith('@harvard.edu')
 
+# ── Game State (In-Memory for now, should be DB for persistence) ──
+game_state = {
+    "race_active": False,
+    "maintenance_mode": True
+}
+
 # ── Routes ──
 @app.route('/')
 def index():
@@ -294,9 +300,10 @@ def api_submit_quest():
         logging.error(f"Submit quest error: {e}")
         return jsonify({'success': False, 'error': 'Database error.'}), 500
 
-@app.route('/api/bot/poll', methods=['GET'])
+@app.route('/api/bot/poll')
 def api_bot_poll():
     try:
+        # Include game state in poll response
         conn = get_db()
         cur = conn.cursor()
         
@@ -341,7 +348,10 @@ def api_bot_poll():
             w['created_at'] = w['created_at'].isoformat() if w['created_at'] else None
             results.append(w)
                 
-        return jsonify(results)
+        return jsonify({
+            "notifications": results,
+            "game_state": game_state
+        })
     except Exception as e:
         logging.error(f"Bot poll error: {e}")
         return jsonify([]), 500
@@ -376,7 +386,22 @@ def admin_bot():
     admin_secret = os.environ.get('ADMIN_SECRET', 'HarvardRace2026_Secure_Admin_Access')
     if admin_secret and secret != admin_secret:
         return "Unauthorized", 401
-    return render_template('admin_bot.html')
+    return render_template('admin_bot.html', game_state=game_state, admin_secret=admin_secret)
+
+@app.route('/api/admin/update-game-state', methods=['POST'])
+def api_update_game_state():
+    secret = request.args.get('secret', '')
+    admin_secret = os.environ.get('ADMIN_SECRET', 'HarvardRace2026_Secure_Admin_Access')
+    if admin_secret and secret != admin_secret:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+    data = request.get_json()
+    if 'race_active' in data:
+        game_state['race_active'] = data['race_active']
+    if 'maintenance_mode' in data:
+        game_state['maintenance_mode'] = data['maintenance_mode']
+    
+    return jsonify({'success': True, 'game_state': game_state})
 
 @app.route('/api/admin/send-message', methods=['POST'])
 def api_send_message():

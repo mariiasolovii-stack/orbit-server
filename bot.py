@@ -247,22 +247,28 @@ def check_leaderboard_updates():
         logging.error(f"Leaderboard check error: {e}")
 
 def poll_and_notify():
+    global RACE_ACTIVE, MAINTENANCE_MODE
     logging.info(f"Bot polling started. Poll interval: {POLL_INTERVAL}s, Notification delay: {NOTIFICATION_DELAY}s")
     while True:
         try:
+            response = requests.get(f'{SERVER_URL}/api/bot/poll', timeout=10)
+            if response.status_code != 200:
+                time.sleep(POLL_INTERVAL)
+                continue
+            
+            data = response.json()
+            # Sync game state from server
+            server_state = data.get('game_state', {})
+            RACE_ACTIVE = server_state.get('race_active', False)
+            MAINTENANCE_MODE = server_state.get('maintenance_mode', True)
+            
             # Check for scheduled challenge drops
             check_and_drop_challenges()
             
             # Check for leaderboard shifts
             check_leaderboard_updates()
             
-            response = requests.get(f'{SERVER_URL}/api/bot/poll', timeout=10)
-            response = requests.get(f'{SERVER_URL}/api/bot/poll', timeout=10)
-            if response.status_code != 200:
-                time.sleep(POLL_INTERVAL)
-                continue
-            
-            pending = response.json()
+            pending = data.get('notifications', [])
             if pending:
                 logging.info(f"Found {len(pending)} pending notifications")
             

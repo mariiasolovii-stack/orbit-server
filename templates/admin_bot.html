@@ -243,11 +243,45 @@
   <div class="container">
     <div class="header">
       <h1>Bot Control Panel</h1>
-      <a href="/leaderboard" style="font-size: 14px; color: #666;">View Leaderboard</a>
+      <div style="display: flex; gap: 20px; align-items: center;">
+        <a href="/leaderboard" style="font-size: 14px; color: #666;">View Leaderboard</a>
+        <a href="/admin/quests?secret={{ admin_secret }}" style="font-size: 14px; color: #666;">Review Quests</a>
+      </div>
     </div>
 
     <!-- Alerts -->
     <div id="alertBox"></div>
+
+    <!-- Game State Controls -->
+    <div class="card">
+      <div class="card-title">Game Master Switches</div>
+      <div class="grid">
+        <div class="form-group">
+          <label>Race Active Status</label>
+          <div style="display: flex; align-items: center; gap: 15px;">
+            <span id="raceActiveStatus" class="status-badge {{ 'status-sent' if game_state.race_active else 'status-pending' }}">
+              {{ 'ACTIVE' if game_state.race_active else 'INACTIVE' }}
+            </span>
+            <button class="btn {{ 'btn-danger' if game_state.race_active else 'btn-primary' }}" onclick="toggleGameState('race_active')">
+              {{ 'Deactivate Race' if game_state.race_active else 'Activate Race' }}
+            </button>
+          </div>
+          <p style="font-size: 11px; color: #888; margin-top: 8px;">When active, automated challenge drops and reminders will fire.</p>
+        </div>
+        <div class="form-group">
+          <label>Maintenance Mode</label>
+          <div style="display: flex; align-items: center; gap: 15px;">
+            <span id="maintenanceStatus" class="status-badge {{ 'status-error' if game_state.maintenance_mode else 'status-sent' }}">
+              {{ 'ON' if game_state.maintenance_mode else 'OFF' }}
+            </span>
+            <button class="btn {{ 'btn-secondary' if game_state.maintenance_mode else 'btn-danger' }}" onclick="toggleGameState('maintenance_mode')">
+              {{ 'Turn OFF Maintenance' if game_state.maintenance_mode else 'Turn ON Maintenance' }}
+            </button>
+          </div>
+          <p style="font-size: 11px; color: #888; margin-top: 8px;">When ON, all automated broadcasts are blocked.</p>
+        </div>
+      </div>
+    </div>
 
     <!-- Manual Message Triggers -->
     <div class="card">
@@ -368,6 +402,32 @@ Leaderboard: joinorbit.one/leaderboard`,
 
     function setTargetAll() {
       document.getElementById('teamSelect').value = 'all';
+    }
+
+    async function toggleGameState(key) {
+      const currentVal = key === 'race_active' ? 
+        document.getElementById('raceActiveStatus').textContent.trim() === 'ACTIVE' :
+        document.getElementById('maintenanceStatus').textContent.trim() === 'ON';
+      
+      const newVal = !currentVal;
+      const payload = {};
+      payload[key] = newVal;
+
+      try {
+        const response = await fetch('/api/admin/update-game-state?secret={{ admin_secret }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (result.success) {
+          location.reload();
+        } else {
+          showAlert('Error updating game state', 'error');
+        }
+      } catch (e) {
+        showAlert('Network error', 'error');
+      }
     }
 
     async function sendMessage() {
