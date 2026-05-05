@@ -171,6 +171,38 @@ def check_and_drop_challenges():
         if now >= drop_time and now < drop_time + timedelta(minutes=POLL_INTERVAL/60 + 1):
             msg = f"🚀 CHALLENGE DROP: Day {challenge['day']} - {challenge['title']} 🚀\n\n{challenge['description']}\n\nGo to {SERVER_URL}/submit to upload your proof. Good luck."
             broadcast_to_all_teams(msg)
+            
+    # Automated Reminders on "Off-Days" (Days 2, 4, 6)
+    reminder_days = [2, 4, 6]
+    if current_day in reminder_days:
+        # Send reminder at 2:00 PM
+        reminder_time = now.replace(hour=14, minute=0, second=0)
+        if now >= reminder_time and now < reminder_time + timedelta(minutes=POLL_INTERVAL/60 + 1):
+            prompt = f"Write a casual and competitive reminder for Day {current_day} of The Harvard Race. Remind teams that they can still complete old quests to earn stars. Keep it mysterious and motivating."
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4.1-mini",
+                    messages=[{"role": "system", "content": "You are the Orbit Bot. Casual, competitive, and mysterious."},
+                              {"role": "user", "content": prompt}]
+                )
+                msg = response.choices[0].message.content
+            except:
+                msg = f"Day {current_day} is halfway through. Old quests are still open. Don't let the other teams pull ahead. ✦"
+            broadcast_to_all_teams(msg)
+
+    # Winner Announcement (Day 7 at 9:00 PM)
+    if current_day == 7:
+        winner_time = now.replace(hour=21, minute=0, second=0)
+        if now >= winner_time and now < winner_time + timedelta(minutes=POLL_INTERVAL/60 + 1):
+            try:
+                res = requests.get(f'{SERVER_URL}/api/admin/teams', timeout=10)
+                if res.status_code == 200:
+                    teams = res.json()
+                    winner = teams[0]['team_name']
+                    msg = f"🏆 THE RACE HAS ENDED 🏆\n\nAfter 7 days of intense competition, the winner of The Harvard Race is...\n\n✨ TEAM {winner.upper()} ✨\n\nCongratulations to the champions. To everyone else: the orbit continues. ✦"
+                    broadcast_to_all_teams(msg)
+            except:
+                pass
 
 def check_leaderboard_updates():
     global last_leaderboard_state
@@ -232,7 +264,18 @@ def poll_and_notify():
                     if elapsed < NOTIFICATION_DELAY:
                         continue
                     
-                    message = f"✨ Stars awarded! You earned {stars_awarded} stars for '{quest_name}'! ✨"
+                    # Personality-driven star message
+                    prompt = f"Write a casual and competitive message for team '{team_name}' who just earned {stars_awarded} stars for completing the quest '{quest_name}'. Keep it short, punchy, and slightly mysterious. Mention their progress on the leaderboard."
+                    try:
+                        response = client.chat.completions.create(
+                            model="gpt-4.1-mini",
+                            messages=[{"role": "system", "content": "You are the Orbit Bot. Casual, competitive, and mysterious."},
+                                      {"role": "user", "content": prompt}]
+                        )
+                        message = response.choices[0].message.content
+                    except:
+                        message = f"✨ Stars awarded! Team {team_name} earned {stars_awarded} stars for '{quest_name}'! The leaderboard is shifting... ✨"
+
                     if send_imessage(phone_numbers, message):
                         requests.post(f'{SERVER_URL}/api/bot/mark-notified', json={'completion_id': completion_id}, timeout=10)
                         del completion_timestamps[completion_id]
