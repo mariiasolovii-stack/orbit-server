@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Choose Your Class ✦ Amazing Race Harvard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400;1,14..32,700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #000;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, sans-serif;
+    }
+
+    /* ─── Video Background ─── */
+    .video-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .video-bg video {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      min-width: 100%;
+      min-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: cover;
+    }
+
+    /* Layered overlay: dark vignette, lighter in the centre */
+    .video-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.55) 100%),
+        linear-gradient(to bottom, rgba(0,0,0,0.60) 0%, rgba(0,0,0,0.22) 40%, rgba(0,0,0,0.22) 60%, rgba(0,0,0,0.72) 100%);
+    }
+
+    /* ─── Navigation ─── */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 32px;
+      pointer-events: none;
+    }
+
+    .nav-link {
+      pointer-events: auto;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+      text-decoration: none;
+      transition: color 0.2s, opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover {
+      color: rgba(255,255,255,0.9);
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 20px 20px;
+      }
+      .nav-link {
+        font-size: 9px;
+        letter-spacing: 0.12em;
+      }
+    }
+
+    /* ─── Stage ─── */
+    .stage {
+      position: relative;
+      z-index: 10;
+      width: 100%; height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0 24px;
+      gap: 0;
+    }
+
+    /* ─── Gate Container ─── */
+    .gate-container {
+      background: rgba(10, 10, 10, 0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 48px 40px;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.60);
+    }
+
+    .gate-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 600;
+      font-style: italic;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.95);
+      margin-bottom: 12px;
+      text-transform: lowercase;
+    }
+
+    .gate-subtitle {
+      font-size: clamp(14px, 1.8vw, 16px);
+      color: rgba(255, 255, 255, 0.60);
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    .gate-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .gate-btn {
+      padding: 16px 24px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      color: rgba(255, 255, 255, 0.90);
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(14px, 1.6vw, 16px);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+    }
+
+    .gate-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-2px);
+    }
+
+    .gate-footer {
+      margin-top: 24px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.32);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ─── Footer ─── */
+    .footer {
+      position: fixed;
+      bottom: 22px;
+      left: 0; right: 0;
+      text-align: center;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.16);
+      z-index: 20;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 560px) {
+      .gate-container {
+        padding: 36px 24px;
+      }
+      .gate-title {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Video -->
+  <div class="video-bg" id="video-wrap">
+    <video id="bg-video" autoplay muted loop playsinline preload="auto" webkit-playsinline>
+      <source src="/static/bg.mp4" type="video/mp4" />
+    </video>
+  </div>
+
+  <!-- Navigation -->
+  <header>
+    <a class="nav-link" href="/about">what is orbit ✦?</a>
+    <a class="nav-link" href="/join">join the orbit team ✦</a>
+  </header>
+
+  <!-- Main -->
+  <main class="stage">
+    <div class="gate-container">
+      <h1 class="gate-title">what year are you?</h1>
+      <p class="gate-subtitle">choose your class to see your countdown.</p>
+      
+      <div class="gate-options">
+        <a href="/freshmen" class="gate-btn">Freshman</a>
+        <a href="/sophomore" class="gate-btn">Sophomore</a>
+        <a href="/junior" class="gate-btn">Junior</a>
+        <a href="/senior" class="gate-btn">Senior</a>
+      </div>
+
+      <div class="gate-footer">orbit ✦ amazing race harvard</div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <div class="footer">orbit ✦ amazing race harvard</div>
+
+  <script>
+    const vid = document.getElementById('bg-video');
+
+    function tryPlay() {
+      vid.muted = true;
+      vid.volume = 0;
+      vid.play().catch(() => {});
+    }
+
+    tryPlay();
+    setTimeout(tryPlay, 300);
+    setTimeout(tryPlay, 800);
+
+    const events = ['touchstart','touchend','pointerdown','click','scroll','keydown'];
+    function onFirstInteraction() {
+      tryPlay();
+      events.forEach(e => document.removeEventListener(e, onFirstInteraction));
+    }
+    events.forEach(e => document.addEventListener(e, onFirstInteraction, { passive: true }));
+  </script>
+
+</body>
+</html>

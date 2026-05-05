@@ -7,6 +7,9 @@ import requests
 import threading
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
+from openai import OpenAI
+
+client = OpenAI() # Uses OPENAI_API_KEY from environment
 
 # Configure logging
 logging.basicConfig(
@@ -27,6 +30,23 @@ NOTIFICATION_DELAY = int(os.environ.get('NOTIFICATION_DELAY', 300))  # 5 minutes
 
 # Track completion IDs and their submission times
 completion_timestamps = {}
+last_leaderboard_state = []
+
+# Race Schedule (May 7 - May 13)
+RACE_START_DATE = datetime(2026, 5, 7)
+CHALLENGE_SCHEDULE = [
+    {"day": 1, "date": datetime(2026, 5, 7), "title": "The Commencement", "description": "Find the oldest tree in Harvard Yard and take a team selfie with it."},
+    {"day": 3, "date": datetime(2026, 5, 9), "title": "The Scholar's Path", "description": "Visit 3 different libraries and find a book with 'Orbit' in the title."},
+    {"day": 5, "date": datetime(2026, 5, 11), "title": "The Crimson Sprint", "description": "Run from Widener to the River and back. Record your time."},
+    {"day": 7, "date": datetime(2026, 5, 13), "title": "The Final Orbit", "description": "The ultimate challenge. Details will be revealed at noon."}
+]
+
+def get_current_race_day():
+    now = datetime.now()
+    if now < RACE_START_DATE:
+        return 0
+    delta = now - RACE_START_DATE
+    return delta.days + 1
 
 def send_imessage(phone_numbers, message):
     """
@@ -128,10 +148,63 @@ def send_imessage(phone_numbers, message):
         logging.error(f"Failed to execute AppleScript: {e}")
         return False
 
+def broadcast_to_all_teams(message):
+    try:
+        response = requests.get(f'{SERVER_URL}/api/admin/teams', timeout=10)
+        if response.status_code == 200:
+            teams = response.json()
+            for team in teams:
+                phone_numbers = team.get('all_phone_numbers', [])
+                if phone_numbers:
+                    send_imessage(phone_numbers, message)
+    except Exception as e:
+        logging.error(f"Broadcast error: {e}")
+
+def check_and_drop_challenges():
+    current_day = get_current_race_day()
+    now = datetime.now()
+    
+    # Check if we need to drop a challenge today
+    for challenge in CHALLENGE_SCHEDULE:
+        # Drop at 9:00 AM on the scheduled day
+        drop_time = challenge['date'].replace(hour=9, minute=0, second=0)
+        if now >= drop_time and now < drop_time + timedelta(minutes=POLL_INTERVAL/60 + 1):
+            msg = f"🚀 CHALLENGE DROP: Day {challenge['day']} - {challenge['title']} 🚀\n\n{challenge['description']}\n\nGo to {SERVER_URL}/submit to upload your proof. Good luck."
+            broadcast_to_all_teams(msg)
+
+def check_leaderboard_updates():
+    global last_leaderboard_state
+    try:
+        response = requests.get(f'{SERVER_URL}/leaderboard', timeout=10)
+        # This is a bit tricky since /leaderboard returns HTML. 
+        # In a real scenario, we'd have an API for this. 
+        # Let's assume there's an API endpoint /api/leaderboard
+        api_response = requests.get(f'{SERVER_URL}/api/admin/teams', timeout=10)
+        if api_response.status_code == 200:
+            current_teams = api_response.json()
+            # Sort by stars (we'd need to calculate stars here or get them from API)
+            # For now, let's just detect if the order of top 3 changes
+            current_top_3 = [t['team_name'] for t in current_teams[:3]]
+            
+            if last_leaderboard_state and current_top_3 != last_leaderboard_state:
+                msg = f"📊 LEADERBOARD ALERT: The top 3 has shifted! 📊\n\n1. {current_top_3[0]}\n2. {current_top_3[1] if len(current_top_3) > 1 else '---'}\n3. {current_top_3[2] if len(current_top_3) > 2 else '---'}\n\nCheck the full standings at {SERVER_URL}/leaderboard"
+                broadcast_to_all_teams(msg)
+            
+            last_leaderboard_state = current_top_3
+    except Exception as e:
+        logging.error(f"Leaderboard check error: {e}")
+
 def poll_and_notify():
     logging.info(f"Bot polling started. Poll interval: {POLL_INTERVAL}s, Notification delay: {NOTIFICATION_DELAY}s")
     while True:
         try:
+            # Check for scheduled challenge drops
+            check_and_drop_challenges()
+            
+            # Check for leaderboard shifts
+            check_leaderboard_updates()
+            
+            response = requests.get(f'{SERVER_URL}/api/bot/poll', timeout=10)
             response = requests.get(f'{SERVER_URL}/api/bot/poll', timeout=10)
             if response.status_code != 200:
                 time.sleep(POLL_INTERVAL)
@@ -172,6 +245,43 @@ def poll_and_notify():
                     
                     if send_imessage(phone_numbers, message_text):
                         requests.post(f'{SERVER_URL}/api/bot/mark-notified', json={'message_id': message_id}, timeout=10)
+                
+                elif msg_type == 'welcome':
+                    team_id = notification.get('team_id')
+                    team_name = notification.get('team_name')
+                    captain_name = notification.get('captain_name')
+                    teammates = notification.get('teammates', [])
+                    phone_numbers = notification.get('all_phone_numbers', [])
+                    
+                    # Personalize the welcome message
+                    member_names = [captain_name]
+                    for tm in teammates:
+                        if tm.get('name'):
+                            member_names.append(tm['name'])
+                    
+                    names_str = ""
+                    if len(member_names) == 1:
+                        names_str = member_names[0]
+                    elif len(member_names) == 2:
+                        names_str = f"{member_names[0]} and {member_names[1]}"
+                    else:
+                        names_str = ", ".join(member_names[:-1]) + f", and {member_names[-1]}"
+                    
+                    prompt = f"Write a casual and competitive welcome message for a team named '{team_name}' participating in 'The Harvard Race'. The members are {names_str}. Mention that the race officially starts on May 7th and they should be ready. Keep it short and punchy for iMessage."
+                    
+                    try:
+                        response = client.chat.completions.create(
+                            model="gpt-4.1-mini",
+                            messages=[{"role": "system", "content": "You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive."},
+                                      {"role": "user", "content": prompt}]
+                        )
+                        welcome_msg = response.choices[0].message.content
+                    except Exception as ai_err:
+                        logging.error(f"AI Error: {ai_err}")
+                        welcome_msg = f"Welcome {names_str} to The Harvard Race! Team {team_name} is officially in. Get ready—the race starts May 7th. ✦"
+
+                    if send_imessage(phone_numbers, welcome_msg):
+                        requests.post(f'{SERVER_URL}/api/bot/mark-notified', json={'team_id': team_id}, timeout=10)
         
         except Exception as e:
             logging.error(f"Error in polling loop: {e}")

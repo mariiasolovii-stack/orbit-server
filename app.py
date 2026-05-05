@@ -40,7 +40,8 @@ def init_db():
             class_year      TEXT,
             team_secret_code TEXT,
             is_active BOOLEAN DEFAULT TRUE,
-            all_phone_numbers TEXT[] DEFAULT '{}'
+            all_phone_numbers TEXT[] DEFAULT '{}',
+            welcomed        BOOLEAN NOT NULL DEFAULT FALSE
         )""")
     
     cur.execute("""
@@ -181,7 +182,27 @@ def is_harvard_email(email):
 # ── Routes ──
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('welcome.html')
+
+@app.route('/gate')
+def gate():
+    return render_template('gate.html')
+
+@app.route('/freshmen')
+def freshmen():
+    return render_template('freshmen.html')
+
+@app.route('/sophomore')
+def sophomore():
+    return render_template('sophomore.html')
+
+@app.route('/junior')
+def junior():
+    return render_template('junior.html')
+
+@app.route('/senior')
+def senior():
+    return render_template('senior.html')
 
 @app.route('/signup')
 def signup():
@@ -296,6 +317,14 @@ def api_bot_poll():
             WHERE status = 'pending'
         """)
         manual_pending = cur.fetchall()
+
+        # 3. Fetch new teams for Welcome message
+        cur.execute("""
+            SELECT id as team_id, team_name, name as captain_name, teammates, all_phone_numbers, created_at, 'welcome' as type
+            FROM waitlist
+            WHERE welcomed = FALSE
+        """)
+        welcome_pending = cur.fetchall()
         
         cur.close()
         conn.close()
@@ -308,6 +337,9 @@ def api_bot_poll():
         for m in manual_pending:
             m['created_at'] = m['created_at'].isoformat() if m['created_at'] else None
             results.append(m)
+        for w in welcome_pending:
+            w['created_at'] = w['created_at'].isoformat() if w['created_at'] else None
+            results.append(w)
                 
         return jsonify(results)
     except Exception as e:
@@ -319,14 +351,17 @@ def api_bot_mark_notified():
     data = request.get_json() or {}
     completion_id = data.get('completion_id')
     message_id = data.get('message_id')
+    team_id = data.get('team_id')
     
     try:
         conn = get_db()
         cur = conn.cursor()
         if completion_id:
             cur.execute("UPDATE quest_completions SET notified = TRUE, notified_at = NOW() WHERE id = %s", (completion_id,))
-        if message_id:
+        elif message_id:
             cur.execute("UPDATE message_log SET status = 'sent' WHERE id = %s", (message_id,))
+        elif team_id:
+            cur.execute("UPDATE waitlist SET welcomed = TRUE WHERE id = %s", (team_id,))
         conn.commit()
         cur.close()
         conn.close()
