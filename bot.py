@@ -30,6 +30,10 @@ SERVER_URL = os.environ.get('SERVER_URL', 'https://joinorbit.one')
 POLL_INTERVAL = int(os.environ.get('POLL_INTERVAL', 60))  # Poll every 60 seconds
 NOTIFICATION_DELAY = int(os.environ.get('NOTIFICATION_DELAY', 300))  # 5 minutes
 
+# SAFETY SWITCH: Set to True only when you are ready to start the race
+RACE_ACTIVE = False 
+MAINTENANCE_MODE = True # Disables all automated broadcasts when True
+
 # Track completion IDs and their submission times
 completion_timestamps = {}
 last_leaderboard_state = []
@@ -163,6 +167,9 @@ def broadcast_to_all_teams(message):
         logging.error(f"Broadcast error: {e}")
 
 def check_and_drop_challenges():
+    if MAINTENANCE_MODE or not RACE_ACTIVE:
+        return
+        
     current_day = get_current_race_day()
     now = datetime.now()
     
@@ -183,7 +190,7 @@ def check_and_drop_challenges():
             prompt = f"Write a casual and competitive reminder for Day {current_day} of The Harvard Race. Remind teams that they can still complete old quests to earn stars. Keep it mysterious and motivating."
             try:
                 response = client.messages.create(
-                    model="claude-3-5-sonnet-20241022",
+                    model="claude-3-5-sonnet-latest",
                     max_tokens=150,
                     system="You are the Orbit Bot. Casual, competitive, and mysterious.",
                     messages=[{"role": "user", "content": prompt}]
@@ -208,6 +215,9 @@ def check_and_drop_challenges():
                 pass
 
 def check_leaderboard_updates():
+    if MAINTENANCE_MODE or not RACE_ACTIVE:
+        return
+        
     global last_leaderboard_state
     try:
         response = requests.get(f'{SERVER_URL}/leaderboard', timeout=10)
@@ -271,7 +281,7 @@ def poll_and_notify():
                     prompt = f"Write a casual and competitive message for team '{team_name}' who just earned {stars_awarded} stars for completing the quest '{quest_name}'. Keep it short, punchy, and slightly mysterious. Mention their progress on the leaderboard."
                     try:
                         response = client.messages.create(
-                            model="claude-3-5-sonnet-20241022",
+                            model="claude-3-5-sonnet-latest",
                             max_tokens=150,
                             system="You are the Orbit Bot. Casual, competitive, and mysterious.",
                             messages=[{"role": "user", "content": prompt}]
@@ -318,7 +328,7 @@ def poll_and_notify():
                     
                     try:
                         response = client.messages.create(
-                            model="claude-3-5-sonnet-20241022",
+                            model="claude-3-5-sonnet-latest",
                             max_tokens=150,
                             system="You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive.",
                             messages=[{"role": "user", "content": prompt}]
@@ -355,7 +365,7 @@ def test_welcome():
     prompt = f"Write a casual and competitive welcome message for a team named '{team_name}' participating in 'The Harvard Race'. The members are {names_str}. Mention that the race officially starts on May 7th and they should be ready. Keep it short and punchy for iMessage."
     
     response = client.messages.create(
-        model="claude-3-5-sonnet-20241022",
+        model="claude-3-5-sonnet-latest",
         max_tokens=150,
         system="You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive.",
         messages=[{"role": "user", "content": prompt}]
@@ -383,7 +393,7 @@ def test_reminder():
     phone_numbers = data.get('phone_numbers', [])
     prompt = f"Write a casual and competitive reminder for Day {day} of The Harvard Race. Remind teams that they can still complete old quests to earn stars. Keep it mysterious and motivating."
     response = client.messages.create(
-        model="claude-3-5-sonnet-20241022",
+        model="claude-3-5-sonnet-latest",
         max_tokens=150,
         system="You are the Orbit Bot. Casual, competitive, and mysterious.",
         messages=[{"role": "user", "content": prompt}]
