@@ -410,6 +410,26 @@ def test_reminder():
         send_imessage(phone_numbers, msg)
     return jsonify({"message": msg})
 
+@app.route('/test/leaderboard', methods=['POST'])
+def test_leaderboard():
+    data = request.get_json() or {}
+    phone_numbers = data.get('phone_numbers', [])
+    top_3 = data.get('top_3', ['Test Team A', 'Test Team B', 'Test Team C'])
+    msg = f"📊 LEADERBOARD ALERT: The top 3 has shifted! 📊\n\n1. {top_3[0]}\n2. {top_3[1]}\n3. {top_3[2]}\n\nCheck the full standings at {SERVER_URL}/leaderboard"
+    if phone_numbers:
+        send_imessage(phone_numbers, msg)
+    return jsonify({"message": msg})
+
+@app.route('/test/winner', methods=['POST'])
+def test_winner():
+    data = request.get_json() or {}
+    phone_numbers = data.get('phone_numbers', [])
+    winner = data.get('winner', 'Test Team A')
+    msg = f"🏆 THE RACE HAS ENDED 🏆\n\nAfter 7 days of intense competition, the winner of The Harvard Race is...\n\n✨ TEAM {winner.upper()} ✨\n\nCongratulations to the champions. To everyone else: the orbit continues. ✦"
+    if phone_numbers:
+        send_imessage(phone_numbers, msg)
+    return jsonify({"message": msg})
+
 if __name__ == '__main__':
     polling_thread = threading.Thread(target=poll_and_notify, daemon=True)
     polling_thread.start()
