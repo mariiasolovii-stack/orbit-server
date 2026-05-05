@@ -98,69 +98,68 @@
       gap: 0;
     }
 
-    /* ─── Modal / Gate ─── */
-    .gate-container {
+    /* ─── Hero Content ─── */
+    .hero-container {
       background: rgba(10, 10, 10, 0.92);
       backdrop-filter: blur(8px);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 16px;
       padding: 48px 40px;
-      max-width: 520px;
+      max-width: 620px;
       width: 100%;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.60);
     }
 
-    .gate-title {
+    .hero-title {
       font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: clamp(28px, 4vw, 42px);
+      font-size: clamp(36px, 5vw, 56px);
       font-weight: 600;
       font-style: italic;
       letter-spacing: 0.06em;
       color: rgba(255, 255, 255, 0.95);
-      margin-bottom: 12px;
+      margin-bottom: 16px;
       text-transform: lowercase;
     }
 
-    .gate-subtitle {
-      font-size: clamp(14px, 1.8vw, 16px);
-      color: rgba(255, 255, 255, 0.60);
+    .hero-subtitle {
+      font-size: clamp(14px, 1.8vw, 18px);
+      color: rgba(255, 255, 255, 0.70);
+      margin-bottom: 24px;
+      line-height: 1.8;
+    }
+
+    .hero-description {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.55);
       margin-bottom: 32px;
-      line-height: 1.6;
+      line-height: 1.7;
     }
 
-    .gate-options {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .gate-btn {
-      padding: 16px 24px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+    .hero-cta {
+      display: inline-block;
+      padding: 16px 40px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
       border-radius: 8px;
-      color: rgba(255, 255, 255, 0.90);
+      color: rgba(255, 255, 255, 0.95);
       font-family: 'Inter', sans-serif;
-      font-size: clamp(14px, 1.6vw, 16px);
+      font-size: 14px;
       font-weight: 600;
       letter-spacing: 0.02em;
       cursor: pointer;
       transition: all 0.25s ease;
       text-decoration: none;
-      display: block;
-      text-align: center;
+      text-transform: uppercase;
     }
 
-    .gate-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.25);
+    .hero-cta:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.40);
       transform: translateY(-2px);
     }
 
-
-
-    .gate-footer {
-      margin-top: 24px;
+    .hero-footer {
+      margin-top: 32px;
       font-size: 11px;
       color: rgba(255, 255, 255, 0.32);
       letter-spacing: 0.08em;
@@ -181,11 +180,11 @@
     }
 
     @media (max-width: 560px) {
-      .gate-container {
+      .hero-container {
         padding: 36px 24px;
       }
-      .gate-title {
-        font-size: 28px;
+      .hero-title {
+        font-size: 32px;
       }
     }
   </style>
@@ -207,18 +206,14 @@
 
   <!-- Main -->
   <main class="stage">
-    <div class="gate-container">
-      <h1 class="gate-title">what year are you?</h1>
-      <p class="gate-subtitle">choose your class to see your countdown.</p>
-      
-      <div class="gate-options">
-        <a href="/freshmen" class="gate-btn">Freshman</a>
-        <a href="/sophomore" class="gate-btn">Sophomore</a>
-        <a href="/junior" class="gate-btn">Junior</a>
-        <a href="/senior" class="gate-btn">Senior</a>
-      </div>
-
-      <div class="gate-footer">orbit ✦ amazing race harvard</div>
+    <div class="hero-container">
+      <h1 class="hero-title">welcome to the harvard race</h1>
+      <p class="hero-subtitle">✦ 10 days of challenges, creativity, and campus adventure ✦</p>
+      <p class="hero-description">
+        Team up with your friends and compete against other Harvard students to earn stars, climb the leaderboard, and claim victory. Are you ready?
+      </p>
+      <a href="/signup" class="hero-cta">Enter the Race</a>
+      <div class="hero-footer">orbit ✦ amazing race harvard</div>
     </div>
   </main>
 
