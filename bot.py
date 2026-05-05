@@ -7,9 +7,11 @@ import requests
 import threading
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
-from openai import OpenAI
+import anthropic
 
-client = OpenAI() # Uses OPENAI_API_KEY from environment
+# Initialize Claude client
+# Set ANTHROPIC_API_KEY in your environment
+client = anthropic.Anthropic()
 
 # Configure logging
 logging.basicConfig(
@@ -180,12 +182,13 @@ def check_and_drop_challenges():
         if now >= reminder_time and now < reminder_time + timedelta(minutes=POLL_INTERVAL/60 + 1):
             prompt = f"Write a casual and competitive reminder for Day {current_day} of The Harvard Race. Remind teams that they can still complete old quests to earn stars. Keep it mysterious and motivating."
             try:
-                response = client.chat.completions.create(
-                    model="gpt-4.1-mini",
-                    messages=[{"role": "system", "content": "You are the Orbit Bot. Casual, competitive, and mysterious."},
-                              {"role": "user", "content": prompt}]
+                response = client.messages.create(
+                    model="claude-3-5-sonnet-20241022",
+                    max_tokens=150,
+                    system="You are the Orbit Bot. Casual, competitive, and mysterious.",
+                    messages=[{"role": "user", "content": prompt}]
                 )
-                msg = response.choices[0].message.content
+                msg = response.content[0].text
             except:
                 msg = f"Day {current_day} is halfway through. Old quests are still open. Don't let the other teams pull ahead. ✦"
             broadcast_to_all_teams(msg)
@@ -267,12 +270,13 @@ def poll_and_notify():
                     # Personality-driven star message
                     prompt = f"Write a casual and competitive message for team '{team_name}' who just earned {stars_awarded} stars for completing the quest '{quest_name}'. Keep it short, punchy, and slightly mysterious. Mention their progress on the leaderboard."
                     try:
-                        response = client.chat.completions.create(
-                            model="gpt-4.1-mini",
-                            messages=[{"role": "system", "content": "You are the Orbit Bot. Casual, competitive, and mysterious."},
-                                      {"role": "user", "content": prompt}]
+                        response = client.messages.create(
+                            model="claude-3-5-sonnet-20241022",
+                            max_tokens=150,
+                            system="You are the Orbit Bot. Casual, competitive, and mysterious.",
+                            messages=[{"role": "user", "content": prompt}]
                         )
-                        message = response.choices[0].message.content
+                        message = response.content[0].text
                     except:
                         message = f"✨ Stars awarded! Team {team_name} earned {stars_awarded} stars for '{quest_name}'! The leaderboard is shifting... ✨"
 
@@ -313,12 +317,13 @@ def poll_and_notify():
                     prompt = f"Write a casual and competitive welcome message for a team named '{team_name}' participating in 'The Harvard Race'. The members are {names_str}. Mention that the race officially starts on May 7th and they should be ready. Keep it short and punchy for iMessage."
                     
                     try:
-                        response = client.chat.completions.create(
-                            model="gpt-4.1-mini",
-                            messages=[{"role": "system", "content": "You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive."},
-                                      {"role": "user", "content": prompt}]
+                        response = client.messages.create(
+                            model="claude-3-5-sonnet-20241022",
+                            max_tokens=150,
+                            system="You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive.",
+                            messages=[{"role": "user", "content": prompt}]
                         )
-                        welcome_msg = response.choices[0].message.content
+                        welcome_msg = response.content[0].text
                     except Exception as ai_err:
                         logging.error(f"AI Error: {ai_err}")
                         welcome_msg = f"Welcome {names_str} to The Harvard Race! Team {team_name} is officially in. Get ready—the race starts May 7th. ✦"
@@ -334,6 +339,59 @@ def poll_and_notify():
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "ok", "bot": "Orbit iMessage Bot"}), 200
+
+# ── Test Mode Endpoints ──
+@app.route('/test/welcome', methods=['POST'])
+def test_welcome():
+    data = request.get_json() or {}
+    team_name = data.get('team_name', 'Test Team')
+    captain_name = data.get('captain_name', 'Captain')
+    teammates = data.get('teammates', [{'name': 'Teammate 1'}])
+    phone_numbers = data.get('phone_numbers', []) # Provide your own number to test
+    
+    member_names = [captain_name] + [tm['name'] for tm in teammates if tm.get('name')]
+    names_str = ", ".join(member_names[:-1]) + f", and {member_names[-1]}" if len(member_names) > 1 else member_names[0]
+    
+    prompt = f"Write a casual and competitive welcome message for a team named '{team_name}' participating in 'The Harvard Race'. The members are {names_str}. Mention that the race officially starts on May 7th and they should be ready. Keep it short and punchy for iMessage."
+    
+    response = client.messages.create(
+        model="claude-3-5-sonnet-20241022",
+        max_tokens=150,
+        system="You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive.",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    msg = response.content[0].text
+    if phone_numbers:
+        send_imessage(phone_numbers, msg)
+    return jsonify({"message": msg})
+
+@app.route('/test/challenge', methods=['POST'])
+def test_challenge():
+    data = request.get_json() or {}
+    day = data.get('day', 1)
+    challenge = CHALLENGE_SCHEDULE[day-1]
+    msg = f"🚀 CHALLENGE DROP: Day {challenge['day']} - {challenge['title']} 🚀\n\n{challenge['description']}\n\nGo to {SERVER_URL}/submit to upload your proof. Good luck."
+    phone_numbers = data.get('phone_numbers', [])
+    if phone_numbers:
+        send_imessage(phone_numbers, msg)
+    return jsonify({"message": msg})
+
+@app.route('/test/reminder', methods=['POST'])
+def test_reminder():
+    data = request.get_json() or {}
+    day = data.get('day', 2)
+    phone_numbers = data.get('phone_numbers', [])
+    prompt = f"Write a casual and competitive reminder for Day {day} of The Harvard Race. Remind teams that they can still complete old quests to earn stars. Keep it mysterious and motivating."
+    response = client.messages.create(
+        model="claude-3-5-sonnet-20241022",
+        max_tokens=150,
+        system="You are the Orbit Bot. Casual, competitive, and mysterious.",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    msg = response.content[0].text
+    if phone_numbers:
+        send_imessage(phone_numbers, msg)
+    return jsonify({"message": msg})
 
 if __name__ == '__main__':
     polling_thread = threading.Thread(target=poll_and_notify, daemon=True)
