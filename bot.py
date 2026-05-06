@@ -309,7 +309,11 @@ def poll_and_notify():
             
             for notification in pending:
                 # CRITICAL: Respect Maintenance Mode for ALL automated messages
-                if MAINTENANCE_MODE:
+                # EXCEPTION: Allow messages to the admin's phone number for testing
+                phone_numbers = notification.get('all_phone_numbers', []) or notification.get('phone_numbers', [])
+                is_admin_test = "+16175993308" in [str(n) for n in phone_numbers] or "6175993308" in [str(n) for n in phone_numbers]
+
+                if MAINTENANCE_MODE and not is_admin_test:
                     # Only allow 'manual' messages that are explicitly triggered
                     if notification.get('type') != 'manual':
                         logging.info(f"Maintenance Mode: Skipping automated {notification.get('type')} notification")
