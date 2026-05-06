@@ -235,8 +235,21 @@ def get_ai_reply(prompt, system_prompt):
         except Exception as e:
             logging.warning(f"OpenAI fallback failed: {e}")
 
-    # 4. Final Hardcoded Fallback
-    return "The orbit is watching. Keep racing. ✦"
+    # 4. Final Hardcoded Fallback (Personality Pack)
+    import random
+    fallbacks = [
+        "The orbit is watching. Keep racing. ✦",
+        "Stars don't earn themselves. Get moving. ✦",
+        "I see you. The leaderboard is shifting... ✦",
+        "Casual? Maybe. Competitive? Always. ✦",
+        "The Yard is full of secrets. Find them. ✦",
+        "Tick tock. The clock is always running. ✦",
+        "Nice try. But can you do it faster? ✦",
+        "The championship is within reach. Don't blink. ✦",
+        "Mysterious? I prefer 'optimized'. ✦",
+        "Harvard is your playground. Play hard. ✦"
+    ]
+    return random.choice(fallbacks)
 
 def listen_for_messages():
     """Listens for incoming iMessages and replies using AI."""
