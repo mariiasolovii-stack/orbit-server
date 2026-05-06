@@ -253,8 +253,9 @@ def leaderboard():
         conn.close()
         return render_template('leaderboard.html', teams=teams)
     except Exception as e:
-        logging.error(f"Leaderboard error: {e}")
-        return "Error loading leaderboard", 500
+        error_details = traceback.format_exc()
+        logging.error(f"Leaderboard error: {e}\n{error_details}")
+        return f"Error loading leaderboard: {e}", 500
 
 @app.route('/submit')
 def submit_page():
