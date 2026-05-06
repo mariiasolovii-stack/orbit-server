@@ -238,12 +238,15 @@ def leaderboard():
         
         # Get leaderboard (Top 10 Unique Team Names)
         cur.execute("""
-            SELECT w.team_name, MAX(w.class_year) as class_year, 
-                   COALESCE(SUM(qc.stars_awarded), 0) as total_stars
-            FROM waitlist w
-            LEFT JOIN quest_completions qc ON w.team_name = qc.team_name AND qc.status = 'approved'
-            WHERE w.is_active = TRUE
-            GROUP BY w.team_name
+            SELECT team_name, class_year, total_stars
+            FROM (
+                SELECT DISTINCT ON (w.team_name) 
+                       w.team_name, w.class_year, 
+                       COALESCE(SUM(qc.stars_awarded) OVER (PARTITION BY w.team_name), 0) as total_stars
+                FROM waitlist w
+                LEFT JOIN quest_completions qc ON w.team_name = qc.team_name AND qc.status = 'approved'
+                WHERE w.is_active = TRUE
+            ) sub
             ORDER BY total_stars DESC
             LIMIT 10
         """)
