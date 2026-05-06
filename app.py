@@ -283,6 +283,11 @@ def api_submit_quest():
             
         team_name = team['team_name']
         secret_code = team['team_secret_code']
+        cur.close()
+        conn.close()
+    except Exception as e:
+        logging.error(f"Team lookup error: {e}")
+        return jsonify({'success': False, 'error': 'Database error.'}), 500
 
     if not all([team_name, secret_code, quest_id]):
         return jsonify({'success': False, 'error': 'Missing required fields.'}), 400
