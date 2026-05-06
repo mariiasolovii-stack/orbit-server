@@ -179,6 +179,68 @@ def check_and_drop_challenges():
     # DISABLED: We now only send scheduled messages when manually triggered from the dashboard
     pass
 
+def listen_for_messages():
+    """Listens for incoming iMessages and replies using Claude."""
+    logging.info("Message listener started.")
+    
+    # Path to the iMessage database on macOS
+    db_path = os.path.expanduser("~/Library/Messages/chat.db")
+    if not os.path.exists(db_path):
+        logging.error(f"iMessage database not found at {db_path}. Ensure you are on a Mac and have given Full Disk Access.")
+        return
+
+    import sqlite3
+    last_id = 0
+    
+    # Get the last message ID to start from
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        cur = conn.cursor()
+        cur.execute("SELECT MAX(ROWID) FROM message")
+        last_id = cur.fetchone()[0] or 0
+        conn.close()
+    except Exception as e:
+        logging.error(f"Error connecting to iMessage DB: {e}")
+        return
+
+    while True:
+        try:
+            conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+            cur = conn.cursor()
+            # Fetch new messages from the last minute
+            cur.execute("""
+                SELECT m.ROWID, m.text, h.id as sender
+                FROM message m
+                JOIN handle h ON m.handle_id = h.ROWID
+                WHERE m.ROWID > ? AND m.is_from_me = 0 AND m.text IS NOT NULL
+                ORDER BY m.ROWID ASC
+            """, (last_id,))
+            
+            new_messages = cur.fetchall()
+            for rowid, text, sender in new_messages:
+                last_id = rowid
+                logging.info(f"New message from {sender}: {text}")
+                
+                # Use Claude to generate a reply
+                prompt = f"A student participating in 'The Harvard Race' just texted the bot: '{text}'. Reply to them in a casual, slightly mysterious, and highly competitive tone. Keep it short (under 160 chars)."
+                try:
+                    response = client.messages.create(
+                        model="claude-3-5-sonnet-latest",
+                        max_tokens=150,
+                        system="You are the Orbit Bot, the AI managing The Harvard Race.",
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                    reply = response.content[0].text
+                    send_imessage([sender], reply)
+                except Exception as ai_err:
+                    logging.error(f"AI Reply Error: {ai_err}")
+            
+            conn.close()
+        except Exception as e:
+            logging.error(f"Error polling iMessage DB: {e}")
+            
+        time.sleep(5) # Check for new messages every 5 seconds
+
 def check_leaderboard_updates():
     if MAINTENANCE_MODE or not RACE_ACTIVE:
         return
@@ -447,6 +509,13 @@ def test_winner():
     return jsonify({"message": msg})
 
 if __name__ == '__main__':
+    # Start the polling thread
     polling_thread = threading.Thread(target=poll_and_notify, daemon=True)
     polling_thread.start()
+    
+    # Start the iMessage listener thread
+    listener_thread = threading.Thread(target=listen_for_messages, daemon=True)
+    listener_thread.start()
+    
+    # Start the Flask app for test endpoints
     app.run(port=5000, debug=False)
