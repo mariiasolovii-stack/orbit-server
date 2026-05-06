@@ -20,7 +20,10 @@ def run_diagnostic():
     try:
         import requests as req
         resp = req.get(f"{SERVER_URL}/health", timeout=5)
-        all_passed &= check_step("Server Connection", resp.status_code == 200, f"Connected to {SERVER_URL}")
+        if resp.status_code == 200:
+            all_passed &= check_step("Server Connection", True, f"Connected to {SERVER_URL}")
+        else:
+            all_passed &= check_step("Server Connection", False, f"Server returned status {resp.status_code} for {SERVER_URL}/health")
     except Exception as e:
         all_passed &= check_step("Server Connection", False, f"Could not connect to {SERVER_URL}: {e}")
 

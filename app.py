@@ -186,6 +186,10 @@ game_state = {
 }
 
 # ── Routes ──
+@app.route('/health')
+def health():
+    return jsonify({"status": "ok", "game": "The Harvard Race"}), 200
+
 @app.route('/')
 def index():
     return render_template('welcome.html')
