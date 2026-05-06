@@ -27,7 +27,7 @@ app = Flask(__name__)
 
 # Configuration
 SERVER_URL = os.environ.get('SERVER_URL', 'https://joinorbit.one')
-POLL_INTERVAL = int(os.environ.get('POLL_INTERVAL', 60))  # Poll every 60 seconds
+POLL_INTERVAL = int(os.environ.get('POLL_INTERVAL', 3))  # Poll every 3 seconds
 NOTIFICATION_DELAY = int(os.environ.get('NOTIFICATION_DELAY', 300))  # 5 minutes
 
 # SAFETY SWITCH: Set to True only when you are ready to start the race
