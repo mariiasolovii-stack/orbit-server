@@ -235,6 +235,8 @@ def leaderboard():
     try:
         conn = get_db()
         cur = conn.cursor()
+        
+        # Get leaderboard
         cur.execute("""
             SELECT w.team_name, w.class_year, 
                    (SELECT COALESCE(SUM(stars_awarded), 0) 
@@ -245,9 +247,29 @@ def leaderboard():
             ORDER BY total_stars DESC
         """)
         teams = cur.fetchall()
+        
+        # Get class breakdown
+        cur.execute("""
+            SELECT w.class_year, COALESCE(SUM(qc.stars_awarded), 0) as total_stars
+            FROM waitlist w
+            LEFT JOIN quest_completions qc ON w.team_name = qc.team_name AND qc.status = 'approved'
+            WHERE w.is_active = TRUE
+            GROUP BY w.class_year
+        """)
+        breakdown_rows = cur.fetchall()
+        class_breakdown = {row['class_year']: row['total_stars'] for row in breakdown_rows if row['class_year']}
+        
+        # Determine winning class
+        winning_class = None
+        if class_breakdown:
+            winning_class = max(class_breakdown, key=class_breakdown.get)
+            
         cur.close()
         conn.close()
-        return render_template('leaderboard.html', teams=teams)
+        return render_template('leaderboard.html', 
+                               leaderboard=teams, 
+                               class_breakdown=class_breakdown, 
+                               winning_class=winning_class)
     except Exception as e:
         error_details = traceback.format_exc()
         logging.error(f"Leaderboard error: {e}\n{error_details}")
