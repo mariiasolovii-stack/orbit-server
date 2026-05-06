@@ -476,7 +476,7 @@ def api_generate_ai_message():
         import anthropic
         client = anthropic.Anthropic()
         response = client.messages.create(
-            model="claude-3-5-sonnet-20240620",
+            model="claude-3-haiku-20240307",
             max_tokens=300,
             system="You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive. Draft a short, punchy iMessage based on the user's request.",
             messages=[{"role": "user", "content": user_prompt}]
