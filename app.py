@@ -271,7 +271,7 @@ def api_submit_quest():
         
         # Find team by name or code
         cur.execute("""
-            SELECT team_name, team_secret_code 
+            SELECT team_name, team_secret_code, all_phone_numbers
             FROM waitlist 
             WHERE (team_name = %s OR team_secret_code = %s) AND is_active = TRUE
             LIMIT 1
@@ -279,42 +279,32 @@ def api_submit_quest():
         team = cur.fetchone()
         
         if not team:
+            cur.close()
+            conn.close()
             return jsonify({'success': False, 'error': 'Team not found. Please check your name or code.'}), 404
             
         team_name = team['team_name']
         secret_code = team['team_secret_code']
-        cur.close()
-        conn.close()
-    except Exception as e:
-        logging.error(f"Team lookup error: {e}")
-        return jsonify({'success': False, 'error': 'Database error.'}), 500
-
-    if not all([team_name, secret_code, quest_id]):
-        return jsonify({'success': False, 'error': 'Missing required fields.'}), 400
-
-    try:
-        conn = get_db()
-        cur = conn.cursor()
-        
-        # Verify team
-        cur.execute("SELECT all_phone_numbers FROM waitlist WHERE team_name = %s AND team_secret_code = %s", (team_name, secret_code))
-        team = cur.fetchone()
-        if not team:
-            return jsonify({'success': False, 'error': 'Invalid team name or secret code.'}), 401
 
         # Get quest stars for auto-approval
         cur.execute("SELECT name, stars FROM quests WHERE id = %s", (quest_id,))
         quest = cur.fetchone()
         if not quest:
+            cur.close()
+            conn.close()
             return jsonify({'success': False, 'error': 'Invalid quest ID.'}), 400
 
         # Insert completion as approved (Auto-Approval)
+        # Note: evidence_url might be empty if we're not handling file uploads yet, 
+        # but the DB needs a value.
+        evidence_url = data.get('evidence_url', '')
+        
         cur.execute("""
             INSERT INTO quest_completions 
-            (team_name, quest_id, evidence_url, status, stars_awarded, notified, consent_under_21, consent_promo)
-            VALUES (%s, %s, %s, 'approved', %s, FALSE, %s, %s)
+            (team_name, quest_id, evidence_url, status, stars_awarded, notified, consent_promo)
+            VALUES (%s, %s, %s, 'approved', %s, FALSE, %s)
             RETURNING id
-        """, (team_name, quest_id, evidence_url, quest['stars'], consent_under_21, consent_promo))
+        """, (team_name, quest_id, evidence_url, quest['stars'], consent_promo))
         
         completion_id = cur.fetchone()['id']
         conn.commit()
@@ -324,7 +314,7 @@ def api_submit_quest():
         return jsonify({'success': True, 'message': f'Quest submitted and {quest["stars"]} stars awarded!'}), 201
     except Exception as e:
         logging.error(f"Submit quest error: {e}")
-        return jsonify({'success': False, 'error': 'Database error.'}), 500
+        return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
 
 @app.route('/api/bot/poll')
 def api_bot_poll():
