@@ -121,12 +121,11 @@ def send_imessage(phone_numbers, message):
                 end if
             end repeat
             
-            if foundChat is not missing value then
-                send "{escaped_message}" to foundChat
-            else
-                -- Create new group chat
-                send "{escaped_message}" to targetBuddies
-            end if
+            -- ALWAYS send individual messages for maximum reliability
+            -- Group chat creation via AppleScript is notoriously buggy on macOS
+            repeat with aBuddy in targetBuddies
+                send "{escaped_message}" to aBuddy
+            end repeat
         end tell
         '''
 
