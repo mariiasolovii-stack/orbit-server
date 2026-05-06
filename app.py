@@ -255,13 +255,34 @@ def submit_page():
 
 @app.route('/api/submit-quest', methods=['POST'])
 def api_submit_quest():
-    data = request.get_json(force=True, silent=True) or {}
-    team_name = data.get('team_name')
-    secret_code = data.get('secret_code')
+    # Handle both JSON and Multipart Form Data
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form
+        
+    team_identifier = data.get('team_identifier')
     quest_id = data.get('quest_id')
-    evidence_url = data.get('evidence_url')
-    consent_under_21 = data.get('consent_under_21', False)
-    consent_promo = data.get('consent_promo', False)
+    consent_promo = data.get('consent_promo') == 'true'
+    
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        
+        # Find team by name or code
+        cur.execute("""
+            SELECT team_name, team_secret_code 
+            FROM waitlist 
+            WHERE (team_name = %s OR team_secret_code = %s) AND is_active = TRUE
+            LIMIT 1
+        """, (team_identifier, team_identifier))
+        team = cur.fetchone()
+        
+        if not team:
+            return jsonify({'success': False, 'error': 'Team not found. Please check your name or code.'}), 404
+            
+        team_name = team['team_name']
+        secret_code = team['team_secret_code']
 
     if not all([team_name, secret_code, quest_id]):
         return jsonify({'success': False, 'error': 'Missing required fields.'}), 400
