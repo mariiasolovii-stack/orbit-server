@@ -225,7 +225,7 @@ def listen_for_messages():
                 prompt = f"A student participating in 'The Harvard Race' just texted the bot: '{text}'. Reply to them in a casual, slightly mysterious, and highly competitive tone. Keep it short (under 160 chars)."
                 try:
                     response = client.messages.create(
-                        model="claude-3-5-sonnet-latest",
+                        model="claude-3-5-sonnet-20240620",
                         max_tokens=150,
                         system="You are the Orbit Bot, the AI managing The Harvard Race.",
                         messages=[{"role": "user", "content": prompt}]
@@ -314,7 +314,7 @@ def poll_and_notify():
                     prompt = f"Write a casual and competitive message for team '{team_name}' who just earned {stars_awarded} stars for completing the quest '{quest_name}'. Keep it short, punchy, and slightly mysterious. Mention their progress on the leaderboard."
                     try:
                         response = client.messages.create(
-                            model="claude-3-5-sonnet-latest",
+                            model="claude-3-5-sonnet-20240620",
                             max_tokens=150,
                             system="You are the Orbit Bot. Casual, competitive, and mysterious.",
                             messages=[{"role": "user", "content": prompt}]
@@ -353,7 +353,7 @@ def poll_and_notify():
                             prompt = f"Write a casual and competitive reminder for Day {day} of The Harvard Race. Remind teams that they can still complete old quests to earn stars. Keep it mysterious and motivating."
                             try:
                                 response = client.messages.create(
-                                    model="claude-3-5-sonnet-latest",
+                                    model="claude-3-5-sonnet-20240620",
                                     max_tokens=150,
                                     system="You are the Orbit Bot. Casual, competitive, and mysterious.",
                                     messages=[{"role": "user", "content": prompt}]
@@ -405,7 +405,7 @@ def poll_and_notify():
                     
                     try:
                         response = client.messages.create(
-                            model="claude-3-5-sonnet-latest",
+                            model="claude-3-5-sonnet-20240620",
                             max_tokens=150,
                             system="You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive.",
                             messages=[{"role": "user", "content": prompt}]
@@ -450,7 +450,7 @@ def test_welcome():
     prompt = f"Write a casual and competitive welcome message for a team named '{team_name}' participating in 'The Harvard Race'. The members are {names_str}. Mention that the race officially starts on May 7th and they should be ready. Keep it short and punchy for iMessage."
     
     response = client.messages.create(
-        model="claude-3-5-sonnet-latest",
+        model="claude-3-5-sonnet-20240620",
         max_tokens=150,
         system="You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive.",
         messages=[{"role": "user", "content": prompt}]
@@ -478,7 +478,7 @@ def test_reminder():
     phone_numbers = data.get('phone_numbers', [])
     prompt = f"Write a casual and competitive reminder for Day {day} of The Harvard Race. Remind teams that they can still complete old quests to earn stars. Keep it mysterious and motivating."
     response = client.messages.create(
-        model="claude-3-5-sonnet-latest",
+        model="claude-3-5-sonnet-20240620",
         max_tokens=150,
         system="You are the Orbit Bot. Casual, competitive, and mysterious.",
         messages=[{"role": "user", "content": prompt}]
