@@ -18,7 +18,8 @@ def run_diagnostic():
     # 1. Check Server Connection
     SERVER_URL = "https://joinorbit.one"
     try:
-        resp = requests.get(f"{SERVER_URL}/health", timeout=5)
+        import requests as req
+        resp = req.get(f"{SERVER_URL}/health", timeout=5)
         all_passed &= check_step("Server Connection", resp.status_code == 200, f"Connected to {SERVER_URL}")
     except Exception as e:
         all_passed &= check_step("Server Connection", False, f"Could not connect to {SERVER_URL}: {e}")
@@ -37,7 +38,7 @@ def run_diagnostic():
 
     # 3. Check AppleScript Capability
     test_msg = "Orbit Pre-Flight Check: System is online. ✦"
-    test_phone = "6175993308" # User's phone
+    test_phone = "+16175993308" # User's phone (Added +1 for iMessage)
     script = f'''
     tell application "Messages"
         set targetService to 1st service whose service type is iMessage
