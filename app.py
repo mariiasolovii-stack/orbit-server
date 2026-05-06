@@ -401,16 +401,30 @@ def admin_bot():
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT * FROM race_schedule ORDER BY scheduled_at ASC")
+        
+        # Ensure game_state table exists and has a row
+        cur.execute("CREATE TABLE IF NOT EXISTS game_state (id SERIAL PRIMARY KEY, race_active BOOLEAN DEFAULT FALSE, maintenance_mode BOOLEAN DEFAULT TRUE)")
+        cur.execute("SELECT race_active, maintenance_mode FROM game_state LIMIT 1")
+        game_state_row = cur.fetchone()
+        if not game_state_row:
+            cur.execute("INSERT INTO game_state (race_active, maintenance_mode) VALUES (FALSE, TRUE)")
+            conn.commit()
+            game_state_data = {'race_active': False, 'maintenance_mode': True}
+        else:
+            game_state_data = dict(game_state_row)
+            
+        cur.execute("SELECT * FROM race_schedule ORDER BY day ASC, scheduled_at ASC")
         schedule = cur.fetchall()
         
         cur.execute("SELECT * FROM message_log ORDER BY created_at DESC LIMIT 50")
         logs = cur.fetchall()
         conn.close()
-        return render_template('admin_bot.html', game_state=game_state, logs=logs, schedule=schedule, admin_secret=admin_secret)
+        return render_template('admin_bot.html', game_state=game_state_data, logs=logs, schedule=schedule, admin_secret=admin_secret)
     except Exception as e:
         logging.error(f"Admin bot error: {e}")
-        return render_template('admin_bot.html', game_state=game_state, logs=[], schedule=[], admin_secret=admin_secret)
+        # Fallback game state if DB fails
+        fallback_state = {'race_active': False, 'maintenance_mode': True}
+        return render_template('admin_bot.html', game_state=fallback_state, logs=[], schedule=[], admin_secret=admin_secret)
 
 @app.route('/api/admin/update-schedule', methods=['POST'])
 def update_schedule():

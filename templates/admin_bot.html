@@ -472,7 +472,7 @@ Leaderboard: joinorbit.one/leaderboard`,
       document.getElementById('teamSelect').value = 'all';
     }
 
-    async    async function sendTest(id) {
+    async function sendTest(id) {
       try {
         const response = await fetch('/api/admin/trigger-event?secret={{ admin_secret }}', {
           method: 'POST',
@@ -514,9 +514,9 @@ Leaderboard: joinorbit.one/leaderboard`,
         document.getElementById('raceActiveStatus').innerText === 'ACTIVE' :
         document.getElementById('maintenanceStatus').innerText === 'ON';
       
-      const newValue = !currentValue;al;
+      const newValue = !currentValue;
       const payload = {};
-      payload[key] = newVal;
+      payload[key] = newValue;
 
       try {
         const response = await fetch('/api/admin/update-game-state?secret={{ admin_secret }}', {
