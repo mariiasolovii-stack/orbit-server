@@ -210,6 +210,14 @@ def junior():
 def senior():
     return render_template('senior.html')
 
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route('/join')
+def join():
+    return render_template('join.html')
+
 @app.route('/signup')
 def signup():
     return render_template('signup.html')
@@ -693,6 +701,38 @@ def api_award_stars_manual():
     except Exception as e:
         logging.error(f"Award stars manual error: {e}")
         return jsonify({'success': False, 'error': 'Database error.'}), 500
+
+@app.route('/api/join', methods=['POST'])
+def api_join():
+    data = request.json
+    name = data.get('name')
+    email = data.get('email')
+    pitch = data.get('pitch')
+    
+    if not name or not email or not pitch:
+        return jsonify({'success': False, 'error': 'All fields are required.'}), 400
+        
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # Create table if not exists
+        cur.execute('''
+            CREATE TABLE IF NOT EXISTS join_requests (
+                id SERIAL PRIMARY KEY,
+                name TEXT,
+                email TEXT,
+                pitch TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cur.execute('INSERT INTO join_requests (name, email, pitch) VALUES (%s, %s, %s)', (name, email, pitch))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Join Error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/signup', methods=['POST'])
 def api_signup():
