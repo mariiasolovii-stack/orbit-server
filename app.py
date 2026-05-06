@@ -568,11 +568,10 @@ def api_send_message():
         conn.commit()
         cur.close()
         conn.close()
-        return jsonify({'success': True, 'count': count})
+        return jsonify({'success': True, 'message': 'Quest submitted successfully!'})
     except Exception as e:
-        logging.error(f"Send message error: {e}")
-        return jsonify({'success': False, 'error': 'Database error.'}), 500
-
+        logging.error(f"Submit quest error: {e}")
+        return jsonify({'success': False, 'error': f'Database error: {str(e)}'}), 500
 @app.route('/api/admin/message-log')
 def api_message_log():
     try:
