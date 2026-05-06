@@ -41,13 +41,13 @@ last_leaderboard_state = []
 # Race Schedule (May 7 - May 13)
 RACE_START_DATE = datetime(2026, 5, 7)
 CHALLENGE_SCHEDULE = [
-    {"day": 1, "date": datetime(2026, 5, 7), "title": "The Kickoff Batch", "description": "• High five 5 strangers\n• Compliment 3 outfits\n• Cabot Library Photo\n• Slow motion walk\n• Smith Center Motivation\n• Bunny Ranking"},
-    {"day": 2, "date": datetime(2026, 5, 8), "title": "The Social Batch", "description": "• Lamont Pickup Line\n• Librarian Favorite\n• Fake Harvard Tradition\n• Dramatic Breakup\n• Tourist Lesson\n• Sunset Picnic"},
-    {"day": 3, "date": datetime(2026, 5, 9), "title": "The Explorer Batch", "description": "• Meaningful Location\n• Romcom Meet Cute\n• HLS Confusion\n• Berryline Pint\n• Elevator Pitch\n• House Grille Crawl"},
-    {"day": 4, "date": datetime(2026, 5, 10), "title": "The Fitness Batch", "description": "• Insomnia Sandwich\n• Professor Boop\n• HBS Koi Meditation\n• Charles River Lap\n• MAC Workout\n• Stranger Potluck"},
-    {"day": 5, "date": datetime(2026, 5, 11), "title": "The Creative Batch", "description": "• Dining Hall Trade\n• Themed Photoshoot\n• Team Documentary\n• Boston Cafe Review\n• Freedom Trail\n• Fake Proposal"},
-    {"day": 6, "date": datetime(2026, 5, 12), "title": "The Boston Batch", "description": "• Thrift Quest\n• Bartender Photo\n• Sunrise on Weeks Bridge\n• Esplanade Blue Bike\n• Water Shots\n• Boston Vlog"},
-    {"day": 7, "date": datetime(2026, 5, 13), "title": "The Grand Finale", "description": "• Boston Commons Advice\n• Wildcard Challenge"}
+    {"day": 1, "date": datetime(2026, 5, 7), "title": "The Kickoff Batch (*)", "description": "• High five 5 strangers passing by in the yard\n• Compliment 3 outfits dramatically\n• Walk into Cabot library and take a photo with what you think is the most stressed looking person\n• Do a slow motion walk through science center plaza\n• Find a group studying in the Smith Center and ask them what keeps them motivated to grind\n• Take photos of 5 bunnies on campus and rank them"},
+    {"day": 2, "date": datetime(2026, 5, 8), "title": "The Social Batch (* to **)", "description": "• Try a cringy pick up line on someone in Lamont cafe\n• Ask a librarian what their fav book is and find it\n• Convince a tourist of a fake Harvard tradition; invent a fake ritual and have tourists participate\n• Dramatic break up scene on campus\n• Ask a tourist to teach you something random\n• Sunset picnic by Charles"},
+    {"day": 3, "date": datetime(2026, 5, 9), "title": "The Explorer Batch (**)", "description": "• Revisit your most meaningful location/location with silliest backstory on campus and give short backstory\n• Film a romcom meet cute on campus\n• Ask someone at HLS what they study and then act really confused\n• Share a pint of berryline\n• Get in an elevator and give three strangers your elevator pitch\n• Do a house grille crawl (all 4 grills, even the quad)"},
+    {"day": 4, "date": datetime(2026, 5, 10), "title": "The Fitness Batch (** to ***)", "description": "• Build your own ice cream sandwich at insomnia\n• Give your professor a boop on the nose\n• Meditate in the hbs koi fish pond\n• Take a lap around the Charles river and film your top 3 reflections/lessons learned for the year\n• Take a workout class at the MAC\n• Host a potluck with strangers"},
+    {"day": 5, "date": datetime(2026, 5, 11), "title": "The Creative Batch (***)", "description": "• Trade a dining hall item for smth better at local business\n• Do a themed photoshoot\n• 1 minute documentary about your team\n• Try and review a cafe you’ve never been to before in Boston\n• Walk the freedom trail\n• Film a fake proposal at Boston Public Garden"},
+    {"day": 6, "date": datetime(2026, 5, 12), "title": "The Boston Batch (***)", "description": "• Thrift quest in Buffalo exchange (somerville)\n• On your next bar crawl, take a pic with the cutest bartender (if under 21, do barista)\n• Watch the sunrise on John Weeks Bridge\n• Blue bike around the esplanade\n• Send water shots to a random table at a bar (21+)\n• Capture a 1 minute day in Boston vlog"},
+    {"day": 7, "date": datetime(2026, 5, 13), "title": "The Grand Finale (***)", "description": "• Ask 5 ppl in the Boston Commons for advice for college students\n• Wildcard Challenge: The ultimate mystery."}
 ]
 
 def get_current_race_day():
@@ -317,10 +317,11 @@ def poll_and_notify():
                     
                     # Handle Instant Triggers
                     if message.startswith("TRIGGERED_EVENT:"):
-                        event_type = message.split(":")[1]
+                        parts = message.split(":")
+                        event_type = parts[1]
                         if event_type == 'challenge_drop':
-                            # Get current day's challenge
-                            day = get_current_race_day()
+                            # Get specific day if provided, else current day
+                            day = int(parts[2]) if len(parts) > 2 else get_current_race_day()
                             challenge = CHALLENGE_SCHEDULE[day-1] if day <= len(CHALLENGE_SCHEDULE) else CHALLENGE_SCHEDULE[-1]
                             message = f"🚀 CHALLENGE DROP: Day {challenge['day']} - {challenge['title']} 🚀\n\n{challenge['description']}\n\nGo to {SERVER_URL}/submit to upload your proof. Good luck."
                         elif event_type == 'leaderboard_alert':

@@ -252,7 +252,7 @@
     <!-- Alerts -->
     <div id="alertBox"></div>
 
-    <!-- Game State Controls -->
+    <!-- Game Master Switches -->
     <div class="card">
       <div class="card-title">Game Master Switches</div>
       <div class="grid">
@@ -283,6 +283,89 @@
       </div>
     </div>
 
+    <!-- Race Timeline Checklist -->
+    <div class="card">
+      <div class="card-title">Race Timeline & Checklist</div>
+      <div style="max-height: 500px; overflow-y: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Event</th>
+              <th>Scheduled Time</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="timelineList">
+            <!-- Day 1 -->
+            <tr>
+              <td>Day 1</td>
+              <td><strong>Kickoff Batch (*)</strong><br><small>6 Quests: High five, Compliment, Cabot, etc.</small></td>
+              <td>May 7, 9:00 AM</td>
+              <td><span class="status-badge status-pending">Scheduled</span></td>
+              <td><button class="btn btn-secondary btn-sm" onclick="triggerEvent('challenge_drop', 1)">Force Drop</button></td>
+            </tr>
+            <!-- Day 2 -->
+            <tr>
+              <td>Day 2</td>
+              <td><strong>Social Batch (*)</strong><br><small>6 Quests: Lamont, Librarian, Fake Tradition, etc.</small></td>
+              <td>May 8, 9:00 AM</td>
+              <td><span class="status-badge status-pending">Scheduled</span></td>
+              <td><button class="btn btn-secondary btn-sm" onclick="triggerEvent('challenge_drop', 2)">Force Drop</button></td>
+            </tr>
+            <!-- Day 3 -->
+            <tr>
+              <td>Day 3</td>
+              <td><strong>Explorer Batch (**)</strong><br><small>6 Quests: Meaningful Location, Romcom, HLS, etc.</small></td>
+              <td>May 9, 9:00 AM</td>
+              <td><span class="status-badge status-pending">Scheduled</span></td>
+              <td><button class="btn btn-secondary btn-sm" onclick="triggerEvent('challenge_drop', 3)">Force Drop</button></td>
+            </tr>
+            <!-- Day 4 -->
+            <tr>
+              <td>Day 4</td>
+              <td><strong>Fitness Batch (**)</strong><br><small>6 Quests: Insomnia, Boop, HBS Koi, etc.</small></td>
+              <td>May 10, 9:00 AM</td>
+              <td><span class="status-badge status-pending">Scheduled</span></td>
+              <td><button class="btn btn-secondary btn-sm" onclick="triggerEvent('challenge_drop', 4)">Force Drop</button></td>
+            </tr>
+            <!-- Day 5 -->
+            <tr>
+              <td>Day 5</td>
+              <td><strong>Creative Batch (***)</strong><br><small>6 Quests: Dining Hall, Photoshoot, Documentary, etc.</small></td>
+              <td>May 11, 9:00 AM</td>
+              <td><span class="status-badge status-pending">Scheduled</span></td>
+              <td><button class="btn btn-secondary btn-sm" onclick="triggerEvent('challenge_drop', 5)">Force Drop</button></td>
+            </tr>
+            <!-- Day 6 -->
+            <tr>
+              <td>Day 6</td>
+              <td><strong>Boston Batch (***)</strong><br><small>6 Quests: Thrift, Bartender, Sunrise, etc.</small></td>
+              <td>May 12, 9:00 AM</td>
+              <td><span class="status-badge status-pending">Scheduled</span></td>
+              <td><button class="btn btn-secondary btn-sm" onclick="triggerEvent('challenge_drop', 6)">Force Drop</button></td>
+            </tr>
+            <!-- Day 7 -->
+            <tr>
+              <td>Day 7</td>
+              <td><strong>Grand Finale (***)</strong><br><small>2 Quests: Boston Commons, Wildcard.</small></td>
+              <td>May 13, 9:00 AM</td>
+              <td><span class="status-badge status-pending">Scheduled</span></td>
+              <td><button class="btn btn-secondary btn-sm" onclick="triggerEvent('challenge_drop', 7)">Force Drop</button></td>
+            </tr>
+            <!-- Winner -->
+            <tr>
+              <td>Day 7</td>
+              <td><strong>Winner Announcement</strong></td>
+              <td>May 13, 9:00 PM</td>
+              <td><span class="status-badge status-pending">Scheduled</span></td>
+              <td><button class="btn btn-secondary btn-sm" onclick="triggerEvent('winner')">Force Reveal</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
     <!-- AI Message Generator -->
     <div class="card">
       <div class="card-title">AI Message Generator ✦</div>
@@ -471,14 +554,18 @@ Leaderboard: joinorbit.one/leaderboard`,
       }
     }
 
-    async function triggerEvent(eventType) {
-      if (!confirm(`Are you sure you want to force a ${eventType} broadcast to ALL teams?`)) return;
+    async function triggerEvent(eventType, day = null) {
+      const confirmMsg = day ? 
+        `Are you sure you want to force the Day ${day} challenge drop to ALL teams?` :
+        `Are you sure you want to force a ${eventType} broadcast to ALL teams?`;
+        
+      if (!confirm(confirmMsg)) return;
       
       try {
         const response = await fetch('/api/admin/trigger-event?secret={{ admin_secret }}', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ event_type: eventType })
+          body: JSON.stringify({ event_type: eventType, day: day })
         });
         const result = await response.json();
         if (result.success) {

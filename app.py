@@ -444,6 +444,7 @@ def api_trigger_event():
         
     data = request.get_json()
     event_type = data.get('event_type')
+    day = data.get('day')
     
     # In a real scenario, we'd trigger the bot. 
     # For now, we'll log a special event that the bot will pick up.
@@ -454,6 +455,9 @@ def api_trigger_event():
         teams = cur.fetchall()
         
         message = f"TRIGGERED_EVENT:{event_type}"
+        if day:
+            message += f":{day}"
+            
         for t in teams:
             cur.execute("""
                 INSERT INTO message_log (team_name, event_type, message_text, phone_numbers, status)
