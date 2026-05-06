@@ -41,10 +41,13 @@ last_leaderboard_state = []
 # Race Schedule (May 7 - May 13)
 RACE_START_DATE = datetime(2026, 5, 7)
 CHALLENGE_SCHEDULE = [
-    {"day": 1, "date": datetime(2026, 5, 7), "title": "The Commencement", "description": "Find the oldest tree in Harvard Yard and take a team selfie with it."},
-    {"day": 3, "date": datetime(2026, 5, 9), "title": "The Scholar's Path", "description": "Visit 3 different libraries and find a book with 'Orbit' in the title."},
-    {"day": 5, "date": datetime(2026, 5, 11), "title": "The Crimson Sprint", "description": "Run from Widener to the River and back. Record your time."},
-    {"day": 7, "date": datetime(2026, 5, 13), "title": "The Final Orbit", "description": "The ultimate challenge. Details will be revealed at noon."}
+    {"day": 1, "date": datetime(2026, 5, 7), "title": "The Kickoff Batch", "description": "• High five 5 strangers\n• Compliment 3 outfits\n• Cabot Library Photo\n• Slow motion walk\n• Smith Center Motivation\n• Bunny Ranking"},
+    {"day": 2, "date": datetime(2026, 5, 8), "title": "The Social Batch", "description": "• Lamont Pickup Line\n• Librarian Favorite\n• Fake Harvard Tradition\n• Dramatic Breakup\n• Tourist Lesson\n• Sunset Picnic"},
+    {"day": 3, "date": datetime(2026, 5, 9), "title": "The Explorer Batch", "description": "• Meaningful Location\n• Romcom Meet Cute\n• HLS Confusion\n• Berryline Pint\n• Elevator Pitch\n• House Grille Crawl"},
+    {"day": 4, "date": datetime(2026, 5, 10), "title": "The Fitness Batch", "description": "• Insomnia Sandwich\n• Professor Boop\n• HBS Koi Meditation\n• Charles River Lap\n• MAC Workout\n• Stranger Potluck"},
+    {"day": 5, "date": datetime(2026, 5, 11), "title": "The Creative Batch", "description": "• Dining Hall Trade\n• Themed Photoshoot\n• Team Documentary\n• Boston Cafe Review\n• Freedom Trail\n• Fake Proposal"},
+    {"day": 6, "date": datetime(2026, 5, 12), "title": "The Boston Batch", "description": "• Thrift Quest\n• Bartender Photo\n• Sunrise on Weeks Bridge\n• Esplanade Blue Bike\n• Water Shots\n• Boston Vlog"},
+    {"day": 7, "date": datetime(2026, 5, 13), "title": "The Grand Finale", "description": "• Boston Commons Advice\n• Wildcard Challenge"}
 ]
 
 def get_current_race_day():
