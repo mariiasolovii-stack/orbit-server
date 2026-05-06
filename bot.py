@@ -179,66 +179,11 @@ def check_and_drop_challenges():
     # DISABLED: We now only send scheduled messages when manually triggered from the dashboard
     pass
 
-def get_ai_reply(prompt, system_prompt):
-    """Tries multiple AI models to get a reply, with fallbacks."""
-    # 1. Try Claude 3.5 Sonnet
-    try:
-        response = client.messages.create(
-            model="claude-3-5-sonnet-20240620",
-            max_tokens=150,
-            system=system_prompt,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return response.content[0].text
-    except Exception as e:
-        logging.warning(f"Claude 3.5 Sonnet failed: {e}")
-
-    # 2. Try Claude 3 Haiku
-    try:
-        response = client.messages.create(
-            model="claude-3-haiku-20240307",
-            max_tokens=150,
-            system=system_prompt,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return response.content[0].text
-    except Exception as e:
-        logging.warning(f"Claude 3 Haiku failed: {e}")
-
-    # 2.5 Try Claude 2.1 (Older but reliable)
-    try:
-        response = client.messages.create(
-            model="claude-2.1",
-            max_tokens=150,
-            system=system_prompt,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return response.content[0].text
-    except Exception as e:
-        logging.warning(f"Claude 2.1 failed: {e}")
-
-    # 3. Try OpenAI (if key is available)
-    openai_key = os.environ.get('OPENAI_API_KEY')
-    if openai_key:
-        try:
-            from openai import OpenAI
-            o_client = OpenAI(api_key=openai_key)
-            response = o_client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=150
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            logging.warning(f"OpenAI fallback failed: {e}")
-
-    # 4. Final Hardcoded Fallback (Personality Pack)
+def get_game_master_reply(text=None):
+    """Returns a high-quality, mysterious Game Master reply."""
     import random
-    fallbacks = [
-        "The orbit is watching. Keep racing. ✦",
+    replies = [
+        "The orbit is watching. Focus on the quests. ✦",
         "Stars don't earn themselves. Get moving. ✦",
         "I see you. The leaderboard is shifting... ✦",
         "Casual? Maybe. Competitive? Always. ✦",
@@ -247,9 +192,12 @@ def get_ai_reply(prompt, system_prompt):
         "Nice try. But can you do it faster? ✦",
         "The championship is within reach. Don't blink. ✦",
         "Mysterious? I prefer 'optimized'. ✦",
-        "Harvard is your playground. Play hard. ✦"
+        "Harvard is your playground. Play hard. ✦",
+        "Your progress has been noted. ✦",
+        "The race waits for no one. ✦",
+        "Eyes on the prize. The orbit is watching. ✦"
     ]
-    return random.choice(fallbacks)
+    return random.choice(replies)
 
 def listen_for_messages():
     """Listens for incoming iMessages and replies using AI."""
@@ -293,10 +241,14 @@ def listen_for_messages():
                 last_id = rowid
                 logging.info(f"New message from {sender}: {text}")
                 
-                # Use AI to generate a reply
-                prompt = f"A student participating in 'The Harvard Race' just texted the bot: '{text}'. Reply to them in a casual, slightly mysterious, and highly competitive tone. Keep it short (under 160 chars)."
-                reply = get_ai_reply(prompt, "You are the Orbit Bot, the AI managing The Harvard Race.")
-                send_imessage([sender], reply)
+                # Use high-quality pre-written reply
+                reply = get_game_master_reply(text)
+                
+                # Only send if not in maintenance mode OR if it's a reply to the admin
+                if not MAINTENANCE_MODE or sender == "+16175993308":
+                    send_imessage([sender], reply)
+                else:
+                    logging.info(f"Maintenance Mode: Suppressing reply to {sender}")
             
             conn.close()
         except Exception as e:
@@ -356,6 +308,13 @@ def poll_and_notify():
                 logging.info(f"Found {len(pending)} pending notifications")
             
             for notification in pending:
+                # CRITICAL: Respect Maintenance Mode for ALL automated messages
+                if MAINTENANCE_MODE:
+                    # Only allow 'manual' messages that are explicitly triggered
+                    if notification.get('type') != 'manual':
+                        logging.info(f"Maintenance Mode: Skipping automated {notification.get('type')} notification")
+                        continue
+
                 msg_type = notification.get('type')
                 if msg_type == 'stars':
                     completion_id = notification.get('completion_id')
@@ -374,8 +333,7 @@ def poll_and_notify():
                         continue
                     
                     # Personality-driven star message
-                    prompt = f"Write a casual and competitive message for team '{team_name}' who just earned {stars_awarded} stars for completing the quest '{quest_name}'. Keep it short, punchy, and slightly mysterious. Mention their progress on the leaderboard."
-                    message = get_ai_reply(prompt, "You are the Orbit Bot. Casual, competitive, and mysterious.")
+                    message = f"✨ Stars awarded! Team {team_name} earned {stars_awarded} stars for '{quest_name}'! The leaderboard is shifting... keep pushing. ✦"
 
                     if send_imessage(phone_numbers, message):
                         requests.post(f'{SERVER_URL}/api/bot/mark-notified', json={'completion_id': completion_id}, timeout=10)
@@ -404,8 +362,7 @@ def poll_and_notify():
                                 message = f"📊 LEADERBOARD ALERT: The standings have shifted! Check the latest at {SERVER_URL}/leaderboard"
                         elif event_type == 'reminder':
                             day = get_current_race_day()
-                            prompt = f"Write a casual and competitive reminder for Day {day} of The Harvard Race. Remind teams that they can still complete old quests to earn stars. Keep it mysterious and motivating."
-                            message = get_ai_reply(prompt, "You are the Orbit Bot. Casual, competitive, and mysterious.")
+                            message = f"Day {day} is halfway through. Old quests are still open. Don't let the other teams pull ahead. The orbit is watching. ✦"
 
                     # Personalize manual/triggered messages
                     if "[TEAM_NAME]" in message or "[MEMBER_NAMES]" in message:
@@ -446,8 +403,7 @@ def poll_and_notify():
                     else:
                         names_str = ", ".join(member_names[:-1]) + f", and {member_names[-1]}"
                     
-                    prompt = f"Write a casual and competitive welcome message for a team named '{team_name}' participating in 'The Harvard Race'. The members are {names_str}. Mention that the race officially starts on May 7th and they should be ready. Keep it short and punchy for iMessage."
-                    welcome_msg = get_ai_reply(prompt, "You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive.")
+                    welcome_msg = f"Welcome {names_str} to The Harvard Race! Team {team_name} is officially in. Get ready—the race starts May 7th. The orbit is watching. ✦"
 
                     if send_imessage(phone_numbers, welcome_msg):
                         requests.post(f'{SERVER_URL}/api/bot/mark-notified', json={'team_id': team_id}, timeout=10)
@@ -481,15 +437,7 @@ def test_welcome():
     member_names = [captain_name] + [tm['name'] for tm in teammates if tm.get('name')]
     names_str = ", ".join(member_names[:-1]) + f", and {member_names[-1]}" if len(member_names) > 1 else member_names[0]
     
-    prompt = f"Write a casual and competitive welcome message for a team named '{team_name}' participating in 'The Harvard Race'. The members are {names_str}. Mention that the race officially starts on May 7th and they should be ready. Keep it short and punchy for iMessage."
-    
-    response = client.messages.create(
-        model="claude-3-haiku-20240307",
-        max_tokens=150,
-        system="You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive.",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    msg = response.content[0].text
+    msg = f"Welcome {names_str} to The Harvard Race! Team {team_name} is officially in. Get ready—the race starts May 7th. The orbit is watching. ✦"
     if phone_numbers:
         send_imessage(phone_numbers, msg)
     return jsonify({"message": msg})
@@ -510,14 +458,7 @@ def test_reminder():
     data = request.get_json() or {}
     day = data.get('day', 2)
     phone_numbers = data.get('phone_numbers', [])
-    prompt = f"Write a casual and competitive reminder for Day {day} of The Harvard Race. Remind teams that they can still complete old quests to earn stars. Keep it mysterious and motivating."
-    response = client.messages.create(
-        model="claude-3-haiku-20240307",
-        max_tokens=150,
-        system="You are the Orbit Bot. Casual, competitive, and mysterious.",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    msg = response.content[0].text
+    msg = f"Day {day} is halfway through. Old quests are still open. Don't let the other teams pull ahead. The orbit is watching. ✦"
     if phone_numbers:
         send_imessage(phone_numbers, msg)
     return jsonify({"message": msg})
