@@ -179,8 +179,55 @@ def check_and_drop_challenges():
     # DISABLED: We now only send scheduled messages when manually triggered from the dashboard
     pass
 
+def get_ai_reply(prompt, system_prompt):
+    """Tries multiple AI models to get a reply, with fallbacks."""
+    # 1. Try Claude 3.5 Sonnet
+    try:
+        response = client.messages.create(
+            model="claude-3-5-sonnet-20240620",
+            max_tokens=150,
+            system=system_prompt,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return response.content[0].text
+    except Exception as e:
+        logging.warning(f"Claude 3.5 Sonnet failed: {e}")
+
+    # 2. Try Claude 3 Haiku
+    try:
+        response = client.messages.create(
+            model="claude-3-haiku-20240307",
+            max_tokens=150,
+            system=system_prompt,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return response.content[0].text
+    except Exception as e:
+        logging.warning(f"Claude 3 Haiku failed: {e}")
+
+    # 3. Try OpenAI (if key is available)
+    openai_key = os.environ.get('OPENAI_API_KEY')
+    if openai_key:
+        try:
+            from openai import OpenAI
+            o_client = OpenAI(api_key=openai_key)
+            response = o_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=150
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logging.warning(f"OpenAI fallback failed: {e}")
+
+    # 4. Final Hardcoded Fallback
+    return "The orbit is watching. Keep racing. ✦"
+
 def listen_for_messages():
-    """Listens for incoming iMessages and replies using Claude."""
+    """Listens for incoming iMessages and replies using AI."""
     logging.info("Message listener started.")
     
     # Path to the iMessage database on macOS
@@ -221,19 +268,10 @@ def listen_for_messages():
                 last_id = rowid
                 logging.info(f"New message from {sender}: {text}")
                 
-                # Use Claude to generate a reply
+                # Use AI to generate a reply
                 prompt = f"A student participating in 'The Harvard Race' just texted the bot: '{text}'. Reply to them in a casual, slightly mysterious, and highly competitive tone. Keep it short (under 160 chars)."
-                try:
-                    response = client.messages.create(
-                        model="claude-3-haiku-20240307",
-                        max_tokens=150,
-                        system="You are the Orbit Bot, the AI managing The Harvard Race.",
-                        messages=[{"role": "user", "content": prompt}]
-                    )
-                    reply = response.content[0].text
-                    send_imessage([sender], reply)
-                except Exception as ai_err:
-                    logging.error(f"AI Reply Error: {ai_err}")
+                reply = get_ai_reply(prompt, "You are the Orbit Bot, the AI managing The Harvard Race.")
+                send_imessage([sender], reply)
             
             conn.close()
         except Exception as e:
@@ -312,16 +350,7 @@ def poll_and_notify():
                     
                     # Personality-driven star message
                     prompt = f"Write a casual and competitive message for team '{team_name}' who just earned {stars_awarded} stars for completing the quest '{quest_name}'. Keep it short, punchy, and slightly mysterious. Mention their progress on the leaderboard."
-                    try:
-                        response = client.messages.create(
-                            model="claude-3-haiku-20240307",
-                            max_tokens=150,
-                            system="You are the Orbit Bot. Casual, competitive, and mysterious.",
-                            messages=[{"role": "user", "content": prompt}]
-                        )
-                        message = response.content[0].text
-                    except:
-                        message = f"✨ Stars awarded! Team {team_name} earned {stars_awarded} stars for '{quest_name}'! The leaderboard is shifting... ✨"
+                    message = get_ai_reply(prompt, "You are the Orbit Bot. Casual, competitive, and mysterious.")
 
                     if send_imessage(phone_numbers, message):
                         requests.post(f'{SERVER_URL}/api/bot/mark-notified', json={'completion_id': completion_id}, timeout=10)
@@ -351,16 +380,7 @@ def poll_and_notify():
                         elif event_type == 'reminder':
                             day = get_current_race_day()
                             prompt = f"Write a casual and competitive reminder for Day {day} of The Harvard Race. Remind teams that they can still complete old quests to earn stars. Keep it mysterious and motivating."
-                            try:
-                                response = client.messages.create(
-                                    model="claude-3-haiku-20240307",
-                                    max_tokens=150,
-                                    system="You are the Orbit Bot. Casual, competitive, and mysterious.",
-                                    messages=[{"role": "user", "content": prompt}]
-                                )
-                                message = response.content[0].text
-                            except:
-                                message = f"Day {day} is halfway through. Old quests are still open. Don't let the other teams pull ahead. ✦"
+                            message = get_ai_reply(prompt, "You are the Orbit Bot. Casual, competitive, and mysterious.")
 
                     # Personalize manual/triggered messages
                     if "[TEAM_NAME]" in message or "[MEMBER_NAMES]" in message:
@@ -402,18 +422,7 @@ def poll_and_notify():
                         names_str = ", ".join(member_names[:-1]) + f", and {member_names[-1]}"
                     
                     prompt = f"Write a casual and competitive welcome message for a team named '{team_name}' participating in 'The Harvard Race'. The members are {names_str}. Mention that the race officially starts on May 7th and they should be ready. Keep it short and punchy for iMessage."
-                    
-                    try:
-                        response = client.messages.create(
-                            model="claude-3-haiku-20240307",
-                            max_tokens=150,
-                            system="You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive.",
-                            messages=[{"role": "user", "content": prompt}]
-                        )
-                        welcome_msg = response.content[0].text
-                    except Exception as ai_err:
-                        logging.error(f"AI Error: {ai_err}")
-                        welcome_msg = f"Welcome {names_str} to The Harvard Race! Team {team_name} is officially in. Get ready—the race starts May 7th. ✦"
+                    welcome_msg = get_ai_reply(prompt, "You are the Orbit Bot, the AI managing The Harvard Race. Your tone is casual, slightly mysterious, and highly competitive.")
 
                     if send_imessage(phone_numbers, welcome_msg):
                         requests.post(f'{SERVER_URL}/api/bot/mark-notified', json={'team_id': team_id}, timeout=10)
