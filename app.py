@@ -248,7 +248,7 @@ def submit_page():
         quests = cur.fetchall()
         cur.close()
         conn.close()
-        return render_template('submit.html', quests=quests)
+        return render_template('submit_quest.html', quests=quests)
     except Exception as e:
         logging.error(f"Submit page error: {e}")
         return "Error loading submission page", 500
