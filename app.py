@@ -188,30 +188,6 @@ game_state = {
 # ── Routes ──
 @app.route('/')
 def index():
-    return render_template('welcome.html')
-
-@app.route('/gate')
-def gate():
-    return render_template('gate.html')
-
-@app.route('/freshmen')
-def freshmen():
-    return render_template('freshmen.html')
-
-@app.route('/sophomore')
-def sophomore():
-    return render_template('sophomore.html')
-
-@app.route('/junior')
-def junior():
-    return render_template('junior.html')
-
-@app.route('/senior')
-def senior():
-    return render_template('senior.html')
-
-@app.route('/signup')
-def signup():
     return render_template('signup.html')
 
 @app.route('/thankyou')
@@ -665,6 +641,34 @@ def api_delete_team():
         return jsonify({'success': True})
     except Exception as e:
         logging.error(f"Delete team error: {e}")
+        return jsonify({'success': False, 'error': 'Database error.'}), 500
+
+@app.route('/api/admin/award-stars-manual', methods=['POST'])
+def api_award_stars_manual():
+    data = request.get_json()
+    phone = data.get('phone')
+    stars = data.get('stars', 0)
+    secret = data.get('secret', '')
+    admin_secret = os.environ.get('ADMIN_SECRET', 'HarvardRace2026_Secure_Admin_Access')
+    
+    if secret != admin_secret:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        # Update the team's stars based on the phone number
+        cur.execute("""
+            UPDATE waitlist 
+            SET stars = COALESCE(stars, 0) + %s 
+            WHERE %s = ANY(all_phone_numbers) AND is_active = TRUE
+        """, (stars, phone))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        logging.error(f"Award stars manual error: {e}")
         return jsonify({'success': False, 'error': 'Database error.'}), 500
 
 @app.route('/api/signup', methods=['POST'])

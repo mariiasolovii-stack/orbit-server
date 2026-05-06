@@ -200,10 +200,9 @@ def get_game_master_reply(text=None):
     return random.choice(replies)
 
 def listen_for_messages():
-    """Listens for incoming iMessages and replies using AI."""
+    """Listens for incoming iMessages and handles them."""
     logging.info("Message listener started.")
     
-    # Path to the iMessage database on macOS
     db_path = os.path.expanduser("~/Library/Messages/chat.db")
     if not os.path.exists(db_path):
         logging.error(f"iMessage database not found at {db_path}. Ensure you are on a Mac and have given Full Disk Access.")
@@ -211,8 +210,8 @@ def listen_for_messages():
 
     import sqlite3
     last_id = 0
+    ADMIN_PHONE = "6175993308"
     
-    # Get the last message ID to start from
     try:
         conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
         cur = conn.cursor()
@@ -227,34 +226,58 @@ def listen_for_messages():
         try:
             conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
             cur = conn.cursor()
-            # Fetch new messages from the last minute
+            # Query for ALL new messages (from me and others)
             cur.execute("""
-                SELECT m.ROWID, m.text, h.id as sender
-                FROM message m
-                JOIN handle h ON m.handle_id = h.ROWID
-                WHERE m.ROWID > ? AND m.is_from_me = 0 AND m.text IS NOT NULL
-                ORDER BY m.ROWID ASC
+                SELECT m.ROWID, m.text, h.id, m.is_from_me 
+                FROM message m 
+                JOIN handle h ON m.handle_id = h.ROWID 
+                WHERE m.ROWID > ?
             """, (last_id,))
             
             new_messages = cur.fetchall()
-            for rowid, text, sender in new_messages:
-                last_id = rowid
-                logging.info(f"New message from {sender}: {text}")
+            for row_id, text, phone, is_from_me in new_messages:
+                last_id = max(last_id, row_id)
+                if not text: continue
                 
-                # Use high-quality pre-written reply
-                reply = get_game_master_reply(text)
-                
-                # Only send if not in maintenance mode OR if it's a reply to the admin
-                if not MAINTENANCE_MODE or sender == "+16175993308":
-                    send_imessage([sender], reply)
-                else:
-                    logging.info(f"Maintenance Mode: Suppressing reply to {sender}")
+                # CASE 1: Admin is replying to a student (Awarding Stars)
+                # If the message is from me and contains a star emoji
+                if is_from_me == 1 and "⭐" in text:
+                    award_stars_from_admin(text, phone)
+                    continue
+
+                # CASE 2: Student is sending evidence or chatting
+                if is_from_me == 0:
+                    logging.info(f"New message from {phone}: {text}")
+                    # Use the high-quality pre-written replies
+                    reply = get_game_master_reply()
+                    send_imessage([phone], reply)
             
             conn.close()
         except Exception as e:
-            logging.error(f"Error polling iMessage DB: {e}")
+            logging.error(f"Error in message listener: {e}")
             
-        time.sleep(5) # Check for new messages every 5 seconds
+        time.sleep(3)
+
+def award_stars_from_admin(text, student_phone):
+    """Parses the admin's star emoji reply and updates the DB."""
+    try:
+        # Count stars in the message
+        star_count = text.count("⭐")
+        if star_count == 0: return
+        
+        # Update the database via API
+        resp = requests.post(f"{SERVER_URL}/api/admin/award-stars-manual", json={
+            "phone": student_phone,
+            "stars": star_count,
+            "secret": "HarvardRace2026_Secure_Admin_Access"
+        })
+        
+        if resp.status_code == 200:
+            logging.info(f"Successfully awarded {star_count} stars to {student_phone}")
+            # Send a confirmation to the student
+            send_imessage([student_phone], f"The Orbit has recognized your effort. +{star_count} stars awarded. ✦")
+    except Exception as e:
+        logging.error(f"Failed to award stars: {e}")
 
 def check_leaderboard_updates():
     if MAINTENANCE_MODE or not RACE_ACTIVE:
