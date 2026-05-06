@@ -11,7 +11,7 @@ DATABASE_URL = os.environ.get(
 
 def populate():
     print("🚀 Starting RUGGED Population V8...")
-    with open("/home/ubuntu/orbit-server/real_students.json", "r") as f:
+    with open("real_students.json", "r") as f:
         all_students = json.load(f)
     
     random.shuffle(all_students)
