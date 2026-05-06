@@ -180,49 +180,21 @@ def check_and_drop_challenges():
     if MAINTENANCE_MODE or not RACE_ACTIVE:
         return
         
-    current_day = get_current_race_day()
     now = datetime.now()
     
-    # Check if we need to drop a challenge today
-    for challenge in CHALLENGE_SCHEDULE:
-        # Drop at 9:00 AM on the scheduled day
-        drop_time = challenge['date'].replace(hour=9, minute=0, second=0)
-        if now >= drop_time and now < drop_time + timedelta(minutes=POLL_INTERVAL/60 + 1):
-            msg = f"🚀 CHALLENGE DROP: Day {challenge['day']} - {challenge['title']} 🚀\n\n{challenge['description']}\n\nGo to {SERVER_URL}/submit to upload your proof. Good luck."
-            broadcast_to_all_teams(msg)
+    try:
+        # Fetch all unsent, unpaused events that are due
+        response = requests.get(f'{SERVER_URL}/api/bot/poll', timeout=10)
+        if response.status_code == 200:
+            # We'll add a new endpoint or use the existing one to get the schedule
+            # For now, let's assume the bot can query the DB directly if it has access
+            # Or we can add a new API endpoint /api/bot/schedule
+            pass
             
-    # Automated Reminders on "Off-Days" (Days 2, 4, 6)
-    reminder_days = [2, 4, 6]
-    if current_day in reminder_days:
-        # Send reminder at 2:00 PM
-        reminder_time = now.replace(hour=14, minute=0, second=0)
-        if now >= reminder_time and now < reminder_time + timedelta(minutes=POLL_INTERVAL/60 + 1):
-            prompt = f"Write a casual and competitive reminder for Day {current_day} of The Harvard Race. Remind teams that they can still complete old quests to earn stars. Keep it mysterious and motivating."
-            try:
-                response = client.messages.create(
-                    model="claude-3-5-sonnet-latest",
-                    max_tokens=150,
-                    system="You are the Orbit Bot. Casual, competitive, and mysterious.",
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                msg = response.content[0].text
-            except:
-                msg = f"Day {current_day} is halfway through. Old quests are still open. Don't let the other teams pull ahead. ✦"
-            broadcast_to_all_teams(msg)
-
-    # Winner Announcement (Day 7 at 9:00 PM)
-    if current_day == 7:
-        winner_time = now.replace(hour=21, minute=0, second=0)
-        if now >= winner_time and now < winner_time + timedelta(minutes=POLL_INTERVAL/60 + 1):
-            try:
-                res = requests.get(f'{SERVER_URL}/api/admin/teams', timeout=10)
-                if res.status_code == 200:
-                    teams = res.json()
-                    winner = teams[0]['team_name']
-                    msg = f"🏆 THE RACE HAS ENDED 🏆\n\nAfter 7 days of intense competition, the winner of The Harvard Race is...\n\n✨ TEAM {winner.upper()} ✨\n\nCongratulations to the champions. To everyone else: the orbit continues. ✦"
-                    broadcast_to_all_teams(msg)
-            except:
-                pass
+        # Since the bot runs on the Mac, it should poll the server for scheduled messages
+        # Let's update the server's /api/bot/poll to also return due schedule items
+    except Exception as e:
+        logging.error(f"Schedule check error: {e}")
 
 def check_leaderboard_updates():
     if MAINTENANCE_MODE or not RACE_ACTIVE:
@@ -400,6 +372,14 @@ def poll_and_notify():
 
                     if send_imessage(phone_numbers, welcome_msg):
                         requests.post(f'{SERVER_URL}/api/bot/mark-notified', json={'team_id': team_id}, timeout=10)
+
+                elif msg_type == 'scheduled':
+                    schedule_id = notification.get('schedule_id')
+                    message = notification.get('message_text')
+                    phone_numbers = notification.get('phone_numbers', [])
+                    
+                    if send_imessage(phone_numbers, message):
+                        requests.post(f'{SERVER_URL}/api/bot/mark-notified', json={'schedule_id': schedule_id}, timeout=10)
         
         except Exception as e:
             logging.error(f"Error in polling loop: {e}")

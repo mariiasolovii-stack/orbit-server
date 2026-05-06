@@ -332,6 +332,25 @@ def api_bot_poll():
             WHERE welcomed = FALSE
         """)
         welcome_pending = cur.fetchall()
+
+        # 4. Fetch scheduled messages that are due
+        scheduled_pending = []
+        if game_state.get('race_active') and not game_state.get('maintenance_mode'):
+            cur.execute("""
+                SELECT id as schedule_id, message_text, event_type, 'scheduled' as type
+                FROM race_schedule 
+                WHERE is_sent = FALSE AND is_paused = FALSE AND scheduled_at <= NOW()
+            """)
+            due_items = cur.fetchall()
+            for item in due_items:
+                # For scheduled items, we broadcast to ALL active teams
+                cur.execute("SELECT all_phone_numbers FROM waitlist WHERE is_active = TRUE")
+                all_teams = cur.fetchall()
+                # Flatten all phone numbers into one list for the bot to handle
+                flat_phones = [p for t in all_teams for p in t['all_phone_numbers']]
+                
+                item['phone_numbers'] = flat_phones
+                scheduled_pending.append(item)
         
         cur.close()
         conn.close()
@@ -347,6 +366,8 @@ def api_bot_poll():
         for w in welcome_pending:
             w['created_at'] = w['created_at'].isoformat() if w['created_at'] else None
             results.append(w)
+        for s in scheduled_pending:
+            results.append(s)
                 
         return jsonify({
             "notifications": results,
@@ -372,6 +393,8 @@ def api_bot_mark_notified():
             cur.execute("UPDATE message_log SET status = 'sent' WHERE id = %s", (message_id,))
         elif team_id:
             cur.execute("UPDATE waitlist SET welcomed = TRUE WHERE id = %s", (team_id,))
+        elif data.get('schedule_id'):
+            cur.execute("UPDATE race_schedule SET is_sent = TRUE WHERE id = %s", (data.get('schedule_id'),))
         conn.commit()
         cur.close()
         conn.close()
@@ -386,7 +409,47 @@ def admin_bot():
     admin_secret = os.environ.get('ADMIN_SECRET', 'HarvardRace2026_Secure_Admin_Access')
     if admin_secret and secret != admin_secret:
         return "Unauthorized", 401
-    return render_template('admin_bot.html', game_state=game_state, admin_secret=admin_secret)
+    
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM race_schedule ORDER BY scheduled_at ASC")
+        schedule = cur.fetchall()
+        
+        cur.execute("SELECT * FROM message_log ORDER BY created_at DESC LIMIT 50")
+        logs = cur.fetchall()
+        conn.close()
+        return render_template('admin_bot.html', game_state=game_state, logs=logs, schedule=schedule, admin_secret=admin_secret)
+    except Exception as e:
+        logging.error(f"Admin bot error: {e}")
+        return render_template('admin_bot.html', game_state=game_state, logs=[], schedule=[], admin_secret=admin_secret)
+
+@app.route('/api/admin/update-schedule', methods=['POST'])
+def update_schedule():
+    secret = request.args.get('secret', '')
+    admin_secret = os.environ.get('ADMIN_SECRET', 'HarvardRace2026_Secure_Admin_Access')
+    if admin_secret and secret != admin_secret:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+    data = request.get_json()
+    item_id = data.get('id')
+    field = data.get('field')
+    value = data.get('value')
+    
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        if field == 'is_paused':
+            cur.execute("UPDATE race_schedule SET is_paused = %s WHERE id = %s", (value, item_id))
+        elif field == 'message_text':
+            cur.execute("UPDATE race_schedule SET message_text = %s WHERE id = %s", (value, item_id))
+        elif field == 'scheduled_at':
+            cur.execute("UPDATE race_schedule SET scheduled_at = %s WHERE id = %s", (value, item_id))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/admin/quests')
 def admin_quests():
