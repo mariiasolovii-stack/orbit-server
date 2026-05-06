@@ -205,6 +205,18 @@ def get_ai_reply(prompt, system_prompt):
     except Exception as e:
         logging.warning(f"Claude 3 Haiku failed: {e}")
 
+    # 2.5 Try Claude 2.1 (Older but reliable)
+    try:
+        response = client.messages.create(
+            model="claude-2.1",
+            max_tokens=150,
+            system=system_prompt,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return response.content[0].text
+    except Exception as e:
+        logging.warning(f"Claude 2.1 failed: {e}")
+
     # 3. Try OpenAI (if key is available)
     openai_key = os.environ.get('OPENAI_API_KEY')
     if openai_key:
