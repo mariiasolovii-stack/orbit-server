@@ -335,11 +335,10 @@ def api_bot_poll():
 
         # 4. Fetch scheduled messages that are due
         scheduled_pending = []
-        if g    # 5. Check for scheduled messages that are due
-    # DISABLED: We now only send scheduled messages when manually triggered from the dashboard
-    # if game_state.get('race_active') and not game_state.get('maintenance_mode'):
-    #     ...
-    pass)
+        # DISABLED: We now only send scheduled messages when manually triggered from the dashboard
+        # if game_state.get('race_active') and not game_state.get('maintenance_mode'):
+        #     ...
+        pass
         
         cur.close()
         conn.close()
