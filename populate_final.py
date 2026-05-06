@@ -57,18 +57,31 @@ def populate():
         """, (captain['name'], captain['email'], phone, t_name, teammate_json, year, all_phones, signup_time))
         
         # Completions
-        if t_name in rugged_names:
-            num_quests = random.randint(5, 8)
+        target_stars = None
+        if t_name == "Barbell": target_stars = 21
+        elif t_name == "The 1636 Squad": target_stars = 19
+        elif t_name == "KarakasBro": target_stars = 16
+        elif t_name == "GENED WIDOW": target_stars = 14
+        
+        if target_stars:
+            current_stars = 0
+            while current_stars < target_stars:
+                stars = min(random.randint(1, 3), target_stars - current_stars)
+                q_id = random.choice(quest_ids)
+                comp_time = signup_time + timedelta(days=random.randint(1, 6), hours=random.randint(0, 23))
+                cur.execute("INSERT INTO quest_completions (team_name, quest_id, status, stars_awarded, created_at) VALUES (%s, %s, 'approved', %s, %s)", (t_name, q_id, stars, comp_time))
+                current_stars += stars
         else:
-            num_quests = random.choices([0, 1, 2, 3, 4], weights=[30, 30, 20, 10, 10])[0]
-            
-        used_quests = random.sample(quest_ids, min(num_quests, len(quest_ids)))
-        for q_id in used_quests:
-            stars = random.randint(1, 3)
-            comp_time = signup_time + timedelta(days=random.randint(1, 6), hours=random.randint(0, 23))
-            if comp_time > datetime.now():
-                comp_time = datetime.now() - timedelta(minutes=random.randint(1, 60))
-            cur.execute("INSERT INTO quest_completions (team_name, quest_id, status, stars_awarded, created_at) VALUES (%s, %s, 'approved', %s, %s)", (t_name, q_id, stars, comp_time))
+            if t_name in rugged_names:
+                num_quests = random.randint(3, 5)
+            else:
+                num_quests = random.choices([0, 1, 2, 3], weights=[40, 30, 20, 10])[0]
+                
+            used_quests = random.sample(quest_ids, min(num_quests, len(quest_ids)))
+            for q_id in used_quests:
+                stars = random.randint(1, 3)
+                comp_time = signup_time + timedelta(days=random.randint(1, 6), hours=random.randint(0, 23))
+                cur.execute("INSERT INTO quest_completions (team_name, quest_id, status, stars_awarded, created_at) VALUES (%s, %s, 'approved', %s, %s)", (t_name, q_id, stars, comp_time))
         
         if i % 10 == 0:
             print(f"Processed {i} teams...")
