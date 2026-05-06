@@ -188,6 +188,30 @@ game_state = {
 # ── Routes ──
 @app.route('/')
 def index():
+    return render_template('welcome.html')
+
+@app.route('/gate')
+def gate():
+    return render_template('gate.html')
+
+@app.route('/freshmen')
+def freshmen():
+    return render_template('freshmen.html')
+
+@app.route('/sophomore')
+def sophomore():
+    return render_template('sophomore.html')
+
+@app.route('/junior')
+def junior():
+    return render_template('junior.html')
+
+@app.route('/senior')
+def senior():
+    return render_template('senior.html')
+
+@app.route('/signup')
+def signup():
     return render_template('signup.html')
 
 @app.route('/thankyou')
