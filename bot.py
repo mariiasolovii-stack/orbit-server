@@ -177,24 +177,8 @@ def broadcast_to_all_teams(message):
         logging.error(f"Broadcast error: {e}")
 
 def check_and_drop_challenges():
-    if MAINTENANCE_MODE or not RACE_ACTIVE:
-        return
-        
-    now = datetime.now()
-    
-    try:
-        # Fetch all unsent, unpaused events that are due
-        response = requests.get(f'{SERVER_URL}/api/bot/poll', timeout=10)
-        if response.status_code == 200:
-            # We'll add a new endpoint or use the existing one to get the schedule
-            # For now, let's assume the bot can query the DB directly if it has access
-            # Or we can add a new API endpoint /api/bot/schedule
-            pass
-            
-        # Since the bot runs on the Mac, it should poll the server for scheduled messages
-        # Let's update the server's /api/bot/poll to also return due schedule items
-    except Exception as e:
-        logging.error(f"Schedule check error: {e}")
+    # DISABLED: We now only send scheduled messages when manually triggered from the dashboard
+    pass
 
 def check_leaderboard_updates():
     if MAINTENANCE_MODE or not RACE_ACTIVE:

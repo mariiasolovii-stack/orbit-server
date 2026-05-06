@@ -335,22 +335,11 @@ def api_bot_poll():
 
         # 4. Fetch scheduled messages that are due
         scheduled_pending = []
-        if game_state.get('race_active') and not game_state.get('maintenance_mode'):
-            cur.execute("""
-                SELECT id as schedule_id, message_text, event_type, 'scheduled' as type
-                FROM race_schedule 
-                WHERE is_sent = FALSE AND is_paused = FALSE AND scheduled_at <= NOW()
-            """)
-            due_items = cur.fetchall()
-            for item in due_items:
-                # For scheduled items, we broadcast to ALL active teams
-                cur.execute("SELECT all_phone_numbers FROM waitlist WHERE is_active = TRUE")
-                all_teams = cur.fetchall()
-                # Flatten all phone numbers into one list for the bot to handle
-                flat_phones = [p for t in all_teams for p in t['all_phone_numbers']]
-                
-                item['phone_numbers'] = flat_phones
-                scheduled_pending.append(item)
+        if g    # 5. Check for scheduled messages that are due
+    # DISABLED: We now only send scheduled messages when manually triggered from the dashboard
+    # if game_state.get('race_active') and not game_state.get('maintenance_mode'):
+    #     ...
+    pass)
         
         cur.close()
         conn.close()
@@ -508,24 +497,33 @@ def api_trigger_event():
     data = request.get_json()
     event_type = data.get('event_type')
     day = data.get('day')
+    schedule_id = data.get('schedule_id')
     
-    # In a real scenario, we'd trigger the bot. 
-    # For now, we'll log a special event that the bot will pick up.
     try:
         conn = get_db()
         cur = conn.cursor()
-        cur.execute("SELECT team_name, all_phone_numbers FROM waitlist WHERE is_active = TRUE")
-        teams = cur.fetchall()
         
-        message = f"TRIGGERED_EVENT:{event_type}"
-        if day:
-            message += f":{day}"
+        if event_type == 'test_on_me':
+            cur.execute("SELECT message_text FROM race_schedule WHERE id = %s", (schedule_id,))
+            item = cur.fetchone()
+            if item:
+                cur.execute("""
+                    INSERT INTO message_log (team_name, event_type, message_text, phone_numbers, status)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, ('ADMIN_TEST', 'manual', item['message_text'], ['6175993308'], 'pending'))
+        else:
+            cur.execute("SELECT team_name, all_phone_numbers FROM waitlist WHERE is_active = TRUE")
+            teams = cur.fetchall()
             
-        for t in teams:
-            cur.execute("""
-                INSERT INTO message_log (team_name, event_type, message_text, phone_numbers, status)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (t['team_name'], 'manual', message, t['all_phone_numbers'], 'pending'))
+            message = f"TRIGGERED_EVENT:{event_type}"
+            if day:
+                message += f":{day}"
+                
+            for t in teams:
+                cur.execute("""
+                    INSERT INTO message_log (team_name, event_type, message_text, phone_numbers, status)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (t['team_name'], 'manual', message, t['all_phone_numbers'], 'pending'))
             
         conn.commit()
         cur.close()

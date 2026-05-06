@@ -319,12 +319,11 @@
               </td>
               <td>
                 <div style="display: flex; flex-direction: column; gap: 5px;">
-                  <button class="btn {{ 'btn-primary' if item.is_paused else 'btn-danger' }} btn-sm" 
-                          onclick="updateSchedule({{ item.id }}, 'is_paused', {{ 'false' if item.is_paused else 'true' }})">
-                    {{ 'Resume' if item.is_paused else 'Pause' }}
+                  <button class="btn btn-secondary btn-sm" onclick="sendTest({{ item.id }})">
+                    Test on Me
                   </button>
-                  <button class="btn btn-secondary btn-sm" onclick="triggerEvent('{{ item.event_type }}', {{ item.day }})">
-                    Force Send
+                  <button class="btn btn-primary btn-sm" onclick="triggerEvent('{{ item.event_type }}', {{ item.day }})">
+                    Broadcast to All
                   </button>
                 </div>
               </td>
@@ -473,7 +472,25 @@ Leaderboard: joinorbit.one/leaderboard`,
       document.getElementById('teamSelect').value = 'all';
     }
 
-    async    async function updateSchedule(id, field, value) {
+    async    async function sendTest(id) {
+      try {
+        const response = await fetch('/api/admin/trigger-event?secret={{ admin_secret }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event_type: 'test_on_me', schedule_id: id })
+        });
+        const result = await response.json();
+        if (result.success) {
+          showAlert('Test message sent to your phone');
+        } else {
+          showAlert(result.error || 'Test failed', 'error');
+        }
+      } catch (error) {
+        showAlert('Network error', 'error');
+      }
+    }
+
+    async function updateSchedule(id, field, value) {
       try {
         const response = await fetch('/api/admin/update-schedule?secret={{ admin_secret }}', {
           method: 'POST',
