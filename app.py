@@ -236,15 +236,11 @@ def leaderboard():
         conn = get_db()
         cur = conn.cursor()
         cur.execute("""
-            WITH TeamStars AS (
-                SELECT team_name, SUM(stars_awarded) as total_stars
-                FROM quest_completions
-                WHERE status = 'approved'
-                GROUP BY team_name
-            )
-            SELECT w.team_name, w.class_year, COALESCE(ts.total_stars, 0) as total_stars
+            SELECT w.team_name, w.class_year, 
+                   (SELECT COALESCE(SUM(stars_awarded), 0) 
+                    FROM quest_completions 
+                    WHERE team_name = w.team_name AND status = 'approved') as total_stars
             FROM waitlist w
-            LEFT JOIN TeamStars ts ON w.team_name = ts.team_name
             WHERE w.is_active = TRUE
             ORDER BY total_stars DESC
         """)
