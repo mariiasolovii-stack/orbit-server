@@ -106,3 +106,18 @@
 - [x] Create checkpoints after major milestones
 - [x] All core features implemented and functional
 - [ ] Final checkpoint before handoff
+
+
+## Trackr API Integration (NEW)
+- [ ] Store Trackr API key in settings
+- [ ] Fix Trackr sync endpoint to use stored API key
+- [ ] Verify end-to-end sync works with real API
+
+## AI Daily Creator Summaries (NEW)
+- [x] Build LLM procedure to analyze creator performance
+- [x] Implement engagement analysis (TikTok vs IG)
+- [x] Implement posting pattern detection (frequency, gaps, consistency)
+- [x] Implement content quality flags (hashtags, captions)
+- [x] Create daily summary page UI
+- [ ] Set up automated daily summary generation via heartbeat
+- [x] Display summaries with flags and alerts

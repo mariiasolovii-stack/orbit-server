@@ -7,7 +7,12 @@ const CAMPAIGN_ID = '0c300a5a-987d-4c2d-ac2f-c50a4bbbd98f';
 /**
  * Sync posts from UGCTrackr API and update view counts in database
  */
-export async function syncTrackrPosts(apiKey: string): Promise<{ synced: number; errors: string[] }> {
+export async function syncTrackrPosts(apiKey?: string): Promise<{ synced: number; errors: string[] }> {
+  // Use provided API key or fall back to environment variable
+  const key = apiKey || process.env.TRACKR_API_KEY;
+  if (!key) {
+    throw new Error('Trackr API key not configured');
+  }
   const errors: string[] = [];
   let synced = 0;
 
@@ -17,7 +22,7 @@ export async function syncTrackrPosts(apiKey: string): Promise<{ synced: number;
       `${TRACKR_BASE_URL}/campaigns/${CAMPAIGN_ID}/posts`,
       {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${key}`,
           'Content-Type': 'application/json',
         },
       }
@@ -60,13 +65,17 @@ export async function syncTrackrPosts(apiKey: string): Promise<{ synced: number;
 /**
  * Get campaign details from Trackr API
  */
-export async function getTrackrCampaignDetails(apiKey: string) {
+export async function getTrackrCampaignDetails(apiKey?: string) {
+  const key = apiKey || process.env.TRACKR_API_KEY;
+  if (!key) {
+    throw new Error('Trackr API key not configured');
+  }
   try {
     const response = await axios.get(
       `${TRACKR_BASE_URL}/campaigns/${CAMPAIGN_ID}`,
       {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${key}`,
           'Content-Type': 'application/json',
         },
       }

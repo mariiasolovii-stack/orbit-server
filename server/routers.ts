@@ -331,6 +331,21 @@ export const appRouter = router({
     }),
   }),
 
+  // ============ AI SUMMARIES ============
+  summaries: router({
+    generate: protectedProcedure
+      .input(z.object({ creatorId: z.string() }))
+      .mutation(async ({ input }) => {
+        const aiSummary = await import('./ai-summary');
+        return aiSummary.generateCreatorSummary(input.creatorId);
+      }),
+
+    generateAll: protectedProcedure.mutation(async () => {
+      const aiSummary = await import('./ai-summary');
+      return aiSummary.generateAllCreatorSummaries();
+    }),
+  }),
+
   // ============ SETTINGS ============
   settings: router({
     list: protectedProcedure.query(async () => {

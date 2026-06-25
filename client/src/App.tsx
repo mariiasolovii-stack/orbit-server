@@ -8,6 +8,7 @@ import PayoutQueue from "@/pages/PayoutQueue";
 import ScriptLibrary from "@/pages/ScriptLibrary";
 import Settings from "@/pages/Settings";
 import MessageBuilder from "@/pages/MessageBuilder";
+import AISummaries from "@/pages/AISummaries";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -21,6 +22,7 @@ function Router() {
       <Route path={"/payouts"} component={PayoutQueue} />
       <Route path={"/scripts"} component={ScriptLibrary} />
       <Route path={"/messages"} component={MessageBuilder} />
+      <Route path={"/summaries"} component={AISummaries} />
       <Route path={"/settings"} component={Settings} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
