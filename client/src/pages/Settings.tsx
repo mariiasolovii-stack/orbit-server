@@ -147,10 +147,24 @@ export default function Settings() {
                           onChange={(e) => updateTier(index, 'amount', parseInt(e.target.value))}
                         />
                       </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setPayoutTiers(payoutTiers.filter((_, i) => i !== index))}
+                      >
+                        Remove
+                      </Button>
                     </div>
                   ))}
                 </div>
-                <Button onClick={handleSavePayoutTiers} disabled={upsertMutation.isPending}>
+                <Button
+                  variant="outline"
+                  onClick={() => setPayoutTiers([...payoutTiers, { views: 0, amount: 0 }])}
+                  className="w-full"
+                >
+                  Add Tier
+                </Button>
+                <Button onClick={handleSavePayoutTiers} disabled={upsertMutation.isPending} className="w-full">
                   {upsertMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   Save Tiers
                 </Button>

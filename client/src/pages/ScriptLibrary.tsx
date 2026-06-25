@@ -14,6 +14,7 @@ import { toast } from "sonner";
 
 export default function ScriptLibrary() {
   const [isOpen, setIsOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -22,6 +23,18 @@ export default function ScriptLibrary() {
   });
 
   const scriptsQuery = trpc.scripts.list.useQuery();
+  const updateMutation = trpc.scripts.update.useMutation({
+    onSuccess: () => {
+      scriptsQuery.refetch();
+      setIsOpen(false);
+      setEditingId(null);
+      setFormData({ title: '', format: 'talking_head', content: '' });
+      toast.success('Script updated successfully');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to update script');
+    },
+  });
   const createMutation = trpc.scripts.create.useMutation({
     onSuccess: () => {
       scriptsQuery.refetch();
@@ -47,7 +60,21 @@ export default function ScriptLibrary() {
       return;
     }
 
-    createMutation.mutate(formData);
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, ...formData });
+    } else {
+      createMutation.mutate(formData);
+    }
+  };
+
+  const handleEdit = (script: any) => {
+    setEditingId(script.id);
+    setFormData({
+      title: script.title,
+      format: script.format,
+      content: script.content || '',
+    });
+    setIsOpen(true);
   };
 
   const formatLabel = (format: string) => {
@@ -74,15 +101,18 @@ export default function ScriptLibrary() {
           </div>
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={() => {
+                setEditingId(null);
+                setFormData({ title: '', format: 'talking_head', content: '' });
+              }}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Script
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Add New Script</DialogTitle>
-                <DialogDescription>Create a new content script for creators</DialogDescription>
+                <DialogTitle>{editingId ? 'Edit Script' : 'Add New Script'}</DialogTitle>
+                <DialogDescription>{editingId ? 'Update script details' : 'Create a new content script for creators'}</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -118,9 +148,9 @@ export default function ScriptLibrary() {
                     className="min-h-48"
                   />
                 </div>
-                <Button onClick={handleSubmit} className="w-full" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Add Script
+                <Button onClick={handleSubmit} className="w-full" disabled={createMutation.isPending || updateMutation.isPending}>
+                  {createMutation.isPending || updateMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                  {editingId ? 'Update Script' : 'Add Script'}
                 </Button>
               </div>
             </DialogContent>
@@ -164,14 +194,23 @@ export default function ScriptLibrary() {
                       <CardTitle className="text-lg">{script.title}</CardTitle>
                       <Badge className="mt-2">{formatLabel(script.format)}</Badge>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => deleteMutation.mutate({ id: script.id })}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(script)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => deleteMutation.mutate({ id: script.id })}
+                        disabled={deleteMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1">
