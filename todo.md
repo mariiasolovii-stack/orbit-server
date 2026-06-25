@@ -109,9 +109,9 @@
 
 
 ## Trackr API Integration (NEW)
-- [ ] Store Trackr API key in settings
-- [ ] Fix Trackr sync endpoint to use stored API key
-- [ ] Verify end-to-end sync works with real API
+- [x] Store Trackr API key in settings
+- [x] Fix Trackr sync endpoint to use stored API key
+- [x] Verify end-to-end sync works with real API (endpoint: /api/external/v1/posts?campaign_id=...)
 
 ## AI Daily Creator Summaries (NEW)
 - [x] Build LLM procedure to analyze creator performance

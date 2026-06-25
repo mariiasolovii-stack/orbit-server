@@ -17,10 +17,13 @@ export async function syncTrackrPosts(apiKey?: string): Promise<{ synced: number
   let synced = 0;
 
   try {
-    // Fetch posts from Trackr API
+    // Fetch posts from Trackr API using query parameter
     const response = await axios.get(
-      `${TRACKR_BASE_URL}/campaigns/${CAMPAIGN_ID}/posts`,
+      `${TRACKR_BASE_URL}/posts`,
       {
+        params: {
+          campaign_id: CAMPAIGN_ID,
+        },
         headers: {
           'Authorization': `Bearer ${key}`,
           'Content-Type': 'application/json',
@@ -36,10 +39,9 @@ export async function syncTrackrPosts(apiKey?: string): Promise<{ synced: number
     // Process each Trackr post
     for (const trackrPost of trackrPosts) {
       try {
-        // Try to match by post URL or external ID
+        // Try to match by post URL (link field in Trackr)
         const matchedPost = dbPosts.find(p => 
-          p.postUrl === trackrPost.post_url || 
-          p.id === trackrPost.external_id
+          p.postUrl === trackrPost.link
         );
 
         if (matchedPost) {
@@ -51,13 +53,14 @@ export async function syncTrackrPosts(apiKey?: string): Promise<{ synced: number
           }
         }
       } catch (error) {
-        errors.push(`Failed to sync post ${trackrPost.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        errors.push(`Failed to sync post ${trackrPost.post_id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
     return { synced, errors };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Trackr API sync error:', errorMsg);
     throw new Error(`Trackr API sync failed: ${errorMsg}`);
   }
 }
@@ -84,6 +87,37 @@ export async function getTrackrCampaignDetails(apiKey?: string) {
     return response.data?.data || null;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Trackr campaign details error:', errorMsg);
     throw new Error(`Failed to fetch campaign details: ${errorMsg}`);
+  }
+}
+
+/**
+ * Get all posts for the campaign
+ */
+export async function getTrackrPosts(apiKey?: string) {
+  const key = apiKey || process.env.TRACKR_API_KEY;
+  if (!key) {
+    throw new Error('Trackr API key not configured');
+  }
+  try {
+    const response = await axios.get(
+      `${TRACKR_BASE_URL}/posts`,
+      {
+        params: {
+          campaign_id: CAMPAIGN_ID,
+        },
+        headers: {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    return response.data?.data || [];
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Trackr posts fetch error:', errorMsg);
+    throw new Error(`Failed to fetch posts: ${errorMsg}`);
   }
 }
