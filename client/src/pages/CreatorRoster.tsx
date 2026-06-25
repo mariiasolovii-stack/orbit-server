@@ -79,6 +79,15 @@ export default function CreatorRoster() {
     }
   };
 
+  const getTrialDaysRemaining = (creator: any) => {
+    const trialDays = 14; // Default trial period
+    const startDate = new Date(creator.createdAt);
+    const endDate = new Date(startDate.getTime() + trialDays * 24 * 60 * 60 * 1000);
+    const today = new Date();
+    const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(0, daysRemaining);
+  };
+
   const handleEdit = (creator: any) => {
     setEditingId(creator.id);
     setFormData({
@@ -244,6 +253,13 @@ export default function CreatorRoster() {
                           {creator.instagramHandle && <p>Instagram: {creator.instagramHandle}</p>}
                         </div>
                       </div>
+                      {creator.status === 'trial' && (
+                        <div className="mt-3">
+                          <p className="text-xs text-muted-foreground">
+                            {getTrialDaysRemaining(creator)} days remaining in trial
+                          </p>
+                        </div>
+                      )}
                       {creator.docusignStatus && (
                         <div className="mt-3">
                           <Badge variant={creator.docusignStatus === 'signed' ? 'default' : 'secondary'}>

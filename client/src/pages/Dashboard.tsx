@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Loader2, Users, FileText, DollarSign, AlertCircle, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
 import { useEffect, useState } from "react";
 
 export default function Dashboard() {
@@ -20,6 +21,15 @@ export default function Dashboard() {
   const creatorsQuery = trpc.creators.list.useQuery();
   const postsQuery = trpc.posts.list.useQuery();
   const payoutsQuery = trpc.payouts.calculatePending.useQuery();
+  const syncTrackrMutation = trpc.trackr.sync.useMutation({
+    onSuccess: () => {
+      postsQuery.refetch();
+      toast.success('Trackr posts synced successfully');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to sync Trackr posts');
+    },
+  });
 
   useEffect(() => {
     if (creatorsQuery.data && postsQuery.data && payoutsQuery.data) {
@@ -107,6 +117,60 @@ export default function Dashboard() {
           </Card>
         </div>
 
+        {/* Trial Creator Progress */}
+        {creatorsQuery.data?.filter(c => c.status === 'trial').length ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Trial Creator Progress</CardTitle>
+              <CardDescription>Days remaining and performance toward 10k view goal</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {creatorsQuery.data
+                .filter(c => c.status === 'trial')
+                .map((creator) => {
+                  const trialDays = 14;
+                  const startDate = new Date(creator.createdAt);
+                  const endDate = new Date(startDate.getTime() + trialDays * 24 * 60 * 60 * 1000);
+                  const today = new Date();
+                  const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                  const daysUsed = trialDays - Math.max(0, daysRemaining);
+                  const progressPercent = (daysUsed / trialDays) * 100;
+                  
+                  const creatorPosts = postsQuery.data?.filter(p => p.creatorId === creator.id) || [];
+                  const creatorViews = creatorPosts.reduce((sum, p) => sum + (p.views || 0), 0);
+                  const viewProgress = Math.min((creatorViews / 10000) * 100, 100);
+                  
+                  return (
+                    <div key={creator.id} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-sm">{creator.name}</p>
+                        <Badge variant="secondary" className="text-xs">{Math.max(0, daysRemaining)} days left</Badge>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Trial Progress</span>
+                          <span>{daysUsed}/{trialDays} days</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${progressPercent}%` }} />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>View Goal (10k)</span>
+                          <span>{creatorViews.toLocaleString()} / 10,000</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="bg-green-600 h-2 rounded-full" style={{ width: `${viewProgress}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </CardContent>
+          </Card>
+        ) : null}
+
         {/* Alerts & Actions */}
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
@@ -133,12 +197,19 @@ export default function Dashboard() {
               <CardTitle className="text-base">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start" size="sm">
-                Sync Trackr Posts
-              </Button>
-              <Button variant="outline" className="w-full justify-start" size="sm">
-                Generate Morning Message
-              </Button>
+            <Button 
+              variant="outline" 
+              className="w-full justify-start" 
+              size="sm"
+              onClick={() => syncTrackrMutation.mutate()}
+              disabled={syncTrackrMutation.isPending}
+            >
+              {syncTrackrMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Sync Trackr Posts
+            </Button>
+            <Button variant="outline" className="w-full justify-start" size="sm">
+              Generate Morning Message
+            </Button>
             </CardContent>
           </Card>
         </div>

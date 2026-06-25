@@ -27,13 +27,13 @@
 
 ## Frontend - Overview Page
 - [x] Display key stats (active creators, trial creators, total posts, total views, payouts owed)
-- [ ] Show trial creator progress bars with countdown
+- [x] Show trial creator progress bars with countdown
 - [x] Show needs-attention alerts (low post count, unsigned contracts)
 - [x] Display top 5 posts table
 
 ## Frontend - Creator Roster Page
 - [x] List all creators with status, compensation type, rate, platforms
-- [ ] Show trial countdown
+- [x] Show trial countdown
 - [x] Show DocuSign status
 - [x] Add creator modal (name, email, platforms, comp_type, rate, retainer, trial start date)
 - [x] Edit creator functionality
@@ -47,7 +47,7 @@
 - [ ] Update views modal
 - [x] Approve post button
 - [x] Delete post button
-- [ ] Sync Trackr button (calls proxy route)
+- [x] Sync Trackr button (calls proxy route)
 - [x] Show pending vs approved posts
 
 ## Frontend - Payout Queue Page
@@ -65,14 +65,14 @@
 - [x] Display script content in card format
 
 ## Frontend - Morning Message Builder Page
-- [ ] Tab for trial creator channel
-- [ ] Tab for active creator channel
-- [ ] Input fields: week start/end dates, min posts, announcement, script links, resources
-- [ ] Checkbox for "like to read" prompt
-- [ ] Generate message button
-- [ ] Preview pane
-- [ ] Copy to clipboard button
-- [ ] Format message correctly for Discord
+- [x] Tab for trial creator channel
+- [x] Tab for active creator channel
+- [x] Input fields: week start/end dates, min posts, announcement, script links, resources
+- [x] Checkbox for "like to read" prompt
+- [x] Generate message button
+- [x] Preview pane
+- [x] Copy to clipboard button
+- [x] Format message correctly for Discord
 
 ## Frontend - Settings Page
 - [x] Payout tiers table (views threshold, payout amount)

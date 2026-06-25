@@ -24,6 +24,15 @@ export default function PostTracker() {
 
   const creatorsQuery = trpc.creators.list.useQuery();
   const postsQuery = trpc.posts.list.useQuery();
+  const syncTrackrMutation = trpc.trackr.sync.useMutation({
+    onSuccess: () => {
+      postsQuery.refetch();
+      toast.success('Trackr posts synced successfully');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to sync Trackr posts');
+    },
+  });
   const createMutation = trpc.posts.create.useMutation({
     onSuccess: () => {
       postsQuery.refetch();
@@ -100,13 +109,14 @@ export default function PostTracker() {
             <h1 className="text-3xl font-bold tracking-tight">Post Tracker</h1>
             <p className="text-muted-foreground mt-2">Track and manage all creator posts</p>
           </div>
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Log Post
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Log Post
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Log New Post</DialogTitle>
@@ -175,7 +185,16 @@ export default function PostTracker() {
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+            <Button 
+              variant="outline"
+              onClick={() => syncTrackrMutation.mutate()}
+              disabled={syncTrackrMutation.isPending}
+            >
+              {syncTrackrMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Sync Trackr
+            </Button>
+          </div>
         </div>
 
         {postsQuery.isLoading ? (
