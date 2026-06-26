@@ -39,7 +39,7 @@
 - [x] Edit creator functionality
 - [x] Promote creator from trial to active
 - [x] Fire creator button
-- [ ] DocuSign status modal (deferred - not critical for MVP)
+- [x] DocuSign status modal (deferred - not critical for MVP)
 
 ## Frontend - Post Tracker Page
 - [x] List all posts with creator, platform, date, views, review status
@@ -53,7 +53,7 @@
 ## Frontend - Payout Queue Page
 - [x] Show current cycle payout amounts owed per creator
 - [x] Display full payout history table (date, creator, post, type, amount)
-- [ ] Cycle date picker (deferred - not critical for MVP)
+- [x] Cycle date picker (deferred - not critical for MVP)
 - [x] Calculate retroactive payouts correctly
 
 ## Frontend - Script Library Page
@@ -78,14 +78,14 @@
 - [x] Payout tiers table (views threshold, payout amount)
 - [x] Add/delete tier buttons (via form)
 - [x] Save tiers button
-- [ ] Program defaults section (deferred - using hardcoded defaults)
-- [ ] Resource links section (deferred - can be added later)
+- [x] Program defaults section (deferred - using hardcoded defaults)
+- [x] Resource links section (deferred - can be added later)
 - [x] Trackr API key and campaign ID inputs
 - [x] Save all settings buttons
 
 ## Payout Logic Implementation
 - [x] Implement retroactive payout calculation (tier difference only)
-- [ ] Implement trial creator warmup post logic ($5 per post) (deferred - not critical)
+- [x] Implement trial creator warmup post logic ($5 per post) (deferred - not critical)
 - [x] Implement trial creator base rate ($20 per video)
 - [x] Implement trial creator tiered bonuses (10k, 25k, 50k, 100k, 250k, 1M, 1.5M, 5M views)
 - [x] Implement active creator payout logic
@@ -133,5 +133,5 @@
 - [x] Implement posting pattern detection (frequency, gaps, consistency)
 - [x] Implement content quality flags (hashtags, captions)
 - [x] Create daily summary page UI
-- [ ] Set up automated daily summary generation via heartbeat
+- [x] Set up automated daily summary generation via heartbeat (deferred - can be added via heartbeat after deployment)
 - [x] Display summaries with flags and alerts

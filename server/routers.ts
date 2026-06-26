@@ -323,9 +323,9 @@ export const appRouter = router({
   // ============ TRACKR SYNC ============
   trackr: router({
     sync: protectedProcedure.mutation(async () => {
-      const apiKey = await db.getSetting('trackr_api_key');
+      const apiKey = process.env.TRACKR_API_KEY;
       if (!apiKey) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Trackr API key not configured' });
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Trackr API key not configured. Please set TRACKR_API_KEY in settings.' });
       }
       return trackr.syncTrackrPosts(apiKey);
     }),
