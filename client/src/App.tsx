@@ -22,7 +22,7 @@ function Router() {
       <Route path={"/payouts"} component={PayoutQueue} />
       <Route path={"/scripts"} component={ScriptLibrary} />
       <Route path={"/messages"} component={MessageBuilder} />
-      <Route path={"/summaries"} component={AISummaries} />
+      <Route path={"/ai-summaries"} component={AISummaries} />
       <Route path={"/settings"} component={Settings} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

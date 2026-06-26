@@ -60,6 +60,12 @@ export const posts = mysqlTable("posts", {
   postDate: timestamp("post_date").notNull(),
   postUrl: varchar("post_url", { length: 500 }),
   views: int("views").default(0),
+  likes: int("likes").default(0),
+  comments: int("comments").default(0),
+  shares: int("shares").default(0),
+  saves: int("saves").default(0),
+  title: text("title"), // post caption/title from Trackr
+  trackrPostId: varchar("trackr_post_id", { length: 64 }), // Trackr's post_id for reliable matching
   reviewStatus: mysqlEnum("review_status", ["pending", "approved", "rejected"]).default("pending"),
   isTrialPost: int("is_trial_post").default(0), // boolean flag
   lastPaidTier: int("last_paid_tier").default(0), // highest tier amount already paid for this post

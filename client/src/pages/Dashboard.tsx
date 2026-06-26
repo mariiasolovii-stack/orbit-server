@@ -22,9 +22,15 @@ export default function Dashboard() {
   const postsQuery = trpc.posts.list.useQuery();
   const payoutsQuery = trpc.payouts.calculatePending.useQuery();
   const syncTrackrMutation = trpc.trackr.sync.useMutation({
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       postsQuery.refetch();
-      toast.success('Trackr posts synced successfully');
+      creatorsQuery.refetch();
+      const parts: string[] = [];
+      if (result?.newPosts) parts.push(`${result.newPosts} new post${result.newPosts === 1 ? '' : 's'}`);
+      if (result?.updatedPosts) parts.push(`${result.updatedPosts} updated`);
+      if (result?.newCreators) parts.push(`${result.newCreators} new creator${result.newCreators === 1 ? '' : 's'}`);
+      const detail = parts.length ? parts.join(', ') : `${result?.fetched ?? 0} posts checked, all up to date`;
+      toast.success(`Trackr sync complete: ${detail}`);
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to sync Trackr posts');

@@ -1,111 +1,163 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import axios from 'axios';
 import * as trackr from './trackr';
 import * as db from './db';
 
-// Mock axios
 vi.mock('axios');
+
+const mockTrackrPosts = [
+  {
+    post_id: 'tp-1',
+    campaign_id: '0c300a5a-987d-4c2d-ac2f-c50a4bbbd98f',
+    username: 'creator1',
+    platform: 'tiktok',
+    title: 'Test post #fyp',
+    link: 'https://www.tiktok.com/@creator1/video/123',
+    posted_at: '2026-06-25T10:00:00Z',
+    views: 1500,
+    likes: 50,
+    comments: 5,
+    shares: 2,
+    saves: 10,
+  },
+  {
+    post_id: 'tp-2',
+    campaign_id: '0c300a5a-987d-4c2d-ac2f-c50a4bbbd98f',
+    username: 'creator2',
+    platform: 'instagram',
+    title: 'Another test',
+    link: 'https://www.instagram.com/p/ABC123/',
+    posted_at: '2026-06-25T11:00:00Z',
+    views: 2500,
+    likes: 100,
+    comments: 15,
+    shares: 0,
+    saves: 25,
+  },
+];
 
 describe('Trackr Sync Integration', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    process.env.TRACKR_API_KEY = 'test-key';
   });
 
-  it('should sync posts from Trackr API', async () => {
-    // Mock Trackr API response
-    const mockTrackrPosts = [
-      {
-        post_id: 'post-1',
-        campaign_id: '0c300a5a-987d-4c2d-ac2f-c50a4bbbd98f',
-        username: 'creator1',
-        platform: 'tiktok',
-        title: 'Test post',
-        link: 'https://www.tiktok.com/@creator1/video/123',
-        posted_at: '2026-06-25T10:00:00Z',
-        views: 1500,
-        likes: 50,
-        comments: 5,
-        shares: 2,
-        saves: 10,
-      },
-      {
-        post_id: 'post-2',
-        campaign_id: '0c300a5a-987d-4c2d-ac2f-c50a4bbbd98f',
-        username: 'creator2',
-        platform: 'instagram',
-        title: 'Another test',
-        link: 'https://www.instagram.com/p/ABC123/',
-        posted_at: '2026-06-25T11:00:00Z',
-        views: 2500,
-        likes: 100,
-        comments: 15,
-        shares: 0,
-        saves: 25,
-      },
-    ];
-
-    // Test that sync function handles API response structure
-    expect(mockTrackrPosts).toHaveLength(2);
-    expect(mockTrackrPosts[0].views).toBe(1500);
-    expect(mockTrackrPosts[1].views).toBe(2500);
-  });
-
-  it('should require API key', async () => {
-    // Clear the environment variable
-    const originalKey = process.env.TRACKR_API_KEY;
+  it('requires an API key', async () => {
     delete process.env.TRACKR_API_KEY;
-
-    try {
-      await trackr.syncTrackrPosts();
-      expect.fail('Should have thrown error');
-    } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toContain('API key not configured');
-    }
-
-    // Restore
-    if (originalKey) process.env.TRACKR_API_KEY = originalKey;
+    await expect(trackr.syncTrackrPosts()).rejects.toThrow('API key not configured');
+    process.env.TRACKR_API_KEY = 'test-key';
   });
 
-  it('should return sync result with count', () => {
-    // Test the return type structure
-    const mockResult = { synced: 5, errors: [] };
-    expect(mockResult).toHaveProperty('synced');
-    expect(mockResult).toHaveProperty('errors');
-    expect(mockResult.synced).toBe(5);
-    expect(Array.isArray(mockResult.errors)).toBe(true);
+  it('imports new posts and auto-creates creators', async () => {
+    (axios.get as any).mockResolvedValue({ data: { data: mockTrackrPosts } });
+    // No existing creators or posts
+    vi.spyOn(db, 'listCreators').mockResolvedValue([]);
+    vi.spyOn(db, 'listPosts').mockResolvedValue([]);
+    const createdCreators: any[] = [];
+    vi.spyOn(db, 'createCreator').mockImplementation(async (data: any) => {
+      const c = { id: `c-${createdCreators.length + 1}`, ...data };
+      createdCreators.push(c);
+      return c;
+    });
+    const createdPosts: any[] = [];
+    vi.spyOn(db, 'createPost').mockImplementation(async (data: any) => {
+      const p = { id: `p-${createdPosts.length + 1}`, ...data };
+      createdPosts.push(p);
+      return p;
+    });
+
+    const result = await trackr.syncTrackrPosts('test-key');
+
+    expect(result.fetched).toBe(2);
+    expect(result.newPosts).toBe(2);
+    expect(result.newCreators).toBe(2);
+    expect(result.updatedPosts).toBe(0);
+    expect(result.errors).toHaveLength(0);
+    // platform normalization
+    expect(createdPosts[0].platform).toBe('TikTok');
+    expect(createdPosts[1].platform).toBe('Instagram');
+    // engagement captured
+    expect(createdPosts[0].views).toBe(1500);
+    expect(createdPosts[0].likes).toBe(50);
   });
 
-  it('should handle sync errors gracefully', () => {
-    const mockResult = { 
-      synced: 2, 
-      errors: ['Failed to sync post post-3: Network error'] 
-    };
-    expect(mockResult.synced).toBe(2);
-    expect(mockResult.errors.length).toBe(1);
-    expect(mockResult.errors[0]).toContain('Failed to sync post');
+  it('updates existing posts matched by trackr post id', async () => {
+    (axios.get as any).mockResolvedValue({ data: { data: [mockTrackrPosts[0]] } });
+    vi.spyOn(db, 'listCreators').mockResolvedValue([
+      { id: 'c-1', name: 'creator1', tiktokHandle: 'creator1', instagramHandle: null } as any,
+    ]);
+    vi.spyOn(db, 'listPosts').mockResolvedValue([
+      { id: 'p-1', creatorId: 'c-1', postUrl: mockTrackrPosts[0].link, trackrPostId: 'tp-1', views: 1000, likes: 10, comments: 0, shares: 0, saves: 0 } as any,
+    ]);
+    const updates: any[] = [];
+    vi.spyOn(db, 'updatePost').mockImplementation(async (id: string, data: any) => {
+      updates.push({ id, data });
+      return { id, ...data } as any;
+    });
+    const createPostSpy = vi.spyOn(db, 'createPost');
+    const createCreatorSpy = vi.spyOn(db, 'createCreator');
+
+    const result = await trackr.syncTrackrPosts('test-key');
+
+    expect(result.fetched).toBe(1);
+    expect(result.updatedPosts).toBe(1);
+    expect(result.newPosts).toBe(0);
+    expect(result.newCreators).toBe(0);
+    expect(createPostSpy).not.toHaveBeenCalled();
+    expect(createCreatorSpy).not.toHaveBeenCalled();
+    expect(updates[0].data.views).toBe(1500);
   });
 
-  it('should match posts by URL', () => {
-    // Test URL matching logic
-    const trackrLink = 'https://www.tiktok.com/@creator1/video/123';
-    const dbPostUrl = 'https://www.tiktok.com/@creator1/video/123';
-    
-    expect(trackrLink).toBe(dbPostUrl);
+  it('marks unchanged posts when metrics are identical', async () => {
+    (axios.get as any).mockResolvedValue({ data: { data: [mockTrackrPosts[0]] } });
+    vi.spyOn(db, 'listCreators').mockResolvedValue([
+      { id: 'c-1', name: 'creator1', tiktokHandle: 'creator1', instagramHandle: null } as any,
+    ]);
+    vi.spyOn(db, 'listPosts').mockResolvedValue([
+      { id: 'p-1', creatorId: 'c-1', postUrl: mockTrackrPosts[0].link, trackrPostId: 'tp-1', views: 1500, likes: 50, comments: 5, shares: 2, saves: 10 } as any,
+    ]);
+    const updateSpy = vi.spyOn(db, 'updatePost');
+
+    const result = await trackr.syncTrackrPosts('test-key');
+
+    expect(result.unchanged).toBe(1);
+    expect(result.updatedPosts).toBe(0);
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 
-  it('should validate campaign ID format', () => {
-    const campaignId = '0c300a5a-987d-4c2d-ac2f-c50a4bbbd98f';
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    
-    expect(campaignId).toMatch(uuidRegex);
+  it('collects per-post errors without failing the whole sync', async () => {
+    (axios.get as any).mockResolvedValue({ data: { data: mockTrackrPosts } });
+    vi.spyOn(db, 'listCreators').mockResolvedValue([]);
+    vi.spyOn(db, 'listPosts').mockResolvedValue([]);
+    vi.spyOn(db, 'createCreator').mockResolvedValue({ id: 'c-1' } as any);
+    // First createPost fails, second succeeds
+    let call = 0;
+    vi.spyOn(db, 'createPost').mockImplementation(async (data: any) => {
+      call++;
+      if (call === 1) throw new Error('DB write failed');
+      return { id: 'p-2', ...data } as any;
+    });
+
+    const result = await trackr.syncTrackrPosts('test-key');
+
+    expect(result.fetched).toBe(2);
+    expect(result.errors.length).toBe(1);
+    expect(result.errors[0]).toContain('Failed to sync post');
   });
 
-  it('should construct correct API endpoint', () => {
-    const baseUrl = 'https://app.ugctrackr.com/api/external/v1';
-    const campaignId = '0c300a5a-987d-4c2d-ac2f-c50a4bbbd98f';
-    const endpoint = `${baseUrl}/posts?campaign_id=${campaignId}`;
-    
-    expect(endpoint).toContain('/api/external/v1/posts');
-    expect(endpoint).toContain('campaign_id=0c300a5a-987d-4c2d-ac2f-c50a4bbbd98f');
+  it('uses the correct campaign id and endpoint', async () => {
+    const getSpy = (axios.get as any).mockResolvedValue({ data: { data: [] } });
+    vi.spyOn(db, 'listCreators').mockResolvedValue([]);
+    vi.spyOn(db, 'listPosts').mockResolvedValue([]);
+
+    await trackr.syncTrackrPosts('test-key');
+
+    expect(getSpy).toHaveBeenCalledWith(
+      'https://app.ugctrackr.com/api/external/v1/posts',
+      expect.objectContaining({
+        params: { campaign_id: '0c300a5a-987d-4c2d-ac2f-c50a4bbbd98f' },
+        headers: expect.objectContaining({ Authorization: 'Bearer test-key' }),
+      })
+    );
   });
 });

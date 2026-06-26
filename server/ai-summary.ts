@@ -14,171 +14,222 @@ export interface CreatorSummary {
   generatedAt: Date;
 }
 
+function platformMatches(value: string | null | undefined, target: 'tiktok' | 'instagram'): boolean {
+  const p = (value || '').toLowerCase();
+  if (target === 'tiktok') return p.includes('tiktok');
+  return p.includes('instagram') || p === 'ig';
+}
+
+function engagementRate(views: number, likes: number, comments: number, shares: number, saves: number): number {
+  if (!views) return 0;
+  return ((likes + comments + shares + saves) / views) * 100;
+}
+
 /**
- * Generate AI-powered daily summary for a creator based on their recent posts
+ * Generate AI-powered daily summary for a creator based on their recent posts.
+ * Combines deterministic rule-based flags with an LLM narrative.
  */
 export async function generateCreatorSummary(creatorId: string): Promise<CreatorSummary> {
-  // Get creator info
   const creator = await db.getCreator(creatorId);
   if (!creator) {
     throw new Error(`Creator ${creatorId} not found`);
   }
 
-  // Get creator's posts from the last 30 days
   const allPosts = await db.listPosts();
   const creatorPosts = allPosts.filter(p => p.creatorId === creatorId);
-  
-  // Sort by date (newest first)
+
+  // Sort by post date (newest first), fall back to createdAt
   const recentPosts = creatorPosts
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 50); // Last 50 posts
+    .sort((a, b) => {
+      const da = new Date(a.postDate || a.createdAt).getTime();
+      const dbb = new Date(b.postDate || b.createdAt).getTime();
+      return dbb - da;
+    })
+    .slice(0, 50);
 
   if (recentPosts.length === 0) {
     return {
       creatorId,
       creatorName: creator.name || 'Unknown',
-      summary: 'No posts found for this creator yet.',
-      flags: {
-        engagementIssues: [],
-        postingPatterns: [],
-        contentQuality: [],
-        platformInsights: [],
-      },
+      summary: 'No posts found for this creator yet. Once posts are synced from Trackr, a performance analysis will be generated.',
+      flags: { engagementIssues: [], postingPatterns: [], contentQuality: [], platformInsights: [] },
       generatedAt: new Date(),
     };
   }
 
-  // Prepare data for LLM analysis
-  const postsData = recentPosts.map(p => ({
-    platform: p.platform,
-    date: new Date(p.createdAt).toISOString().split('T')[0],
-    views: p.views || 0,
-    postUrl: p.postUrl,
-    reviewStatus: p.reviewStatus,
-  }));
+  // ---- Platform split (case-insensitive) ----
+  const tikTokPosts = recentPosts.filter(p => platformMatches(p.platform, 'tiktok'));
+  const instagramPosts = recentPosts.filter(p => platformMatches(p.platform, 'instagram'));
+  const sumViews = (arr: typeof recentPosts) => arr.reduce((s, p) => s + (p.views || 0), 0);
+  const tikTokViews = sumViews(tikTokPosts);
+  const instagramViews = sumViews(instagramPosts);
 
-  // Calculate metrics
-  const tikTokPosts = postsData.filter(p => p.platform === 'tiktok');
-  const instagramPosts = postsData.filter(p => p.platform === 'instagram');
-  const tikTokViews = tikTokPosts.reduce((sum, p) => sum + p.views, 0);
-  const instagramViews = instagramPosts.reduce((sum, p) => sum + p.views, 0);
+  const avgEng = (arr: typeof recentPosts) => {
+    if (arr.length === 0) return 0;
+    const total = arr.reduce((s, p) => s + engagementRate(p.views || 0, p.likes || 0, p.comments || 0, p.shares || 0, p.saves || 0), 0);
+    return total / arr.length;
+  };
+  const tikTokEng = avgEng(tikTokPosts);
+  const instagramEng = avgEng(instagramPosts);
 
-  // Analyze posting patterns
-  const postDates = recentPosts.map(p => new Date(p.createdAt).getTime()).sort((a, b) => b - a);
+  // ---- Posting cadence analysis ----
+  const postDates = recentPosts
+    .map(p => new Date(p.postDate || p.createdAt).getTime())
+    .sort((a, b) => b - a);
   const gaps: number[] = [];
   for (let i = 0; i < postDates.length - 1; i++) {
-    const gap = Math.floor((postDates[i] - postDates[i + 1]) / (1000 * 60 * 60 * 24));
-    gaps.push(gap);
+    gaps.push(Math.floor((postDates[i] - postDates[i + 1]) / (1000 * 60 * 60 * 24)));
+  }
+  const maxGap = Math.max(...gaps, 0);
+  const avgGap = gaps.length > 0 ? (gaps.reduce((a, b) => a + b, 0) / gaps.length) : 0;
+
+  const now = Date.now();
+  const last7Days = recentPosts.filter(p => (now - new Date(p.postDate || p.createdAt).getTime()) / (1000 * 60 * 60 * 24) <= 7);
+
+  // Posts per calendar day (to detect >1/day)
+  const postsByDay = new Map<string, number>();
+  for (const p of recentPosts) {
+    const day = new Date(p.postDate || p.createdAt).toISOString().split('T')[0];
+    postsByDay.set(day, (postsByDay.get(day) || 0) + 1);
+  }
+  const daysWithMultiplePosts = Array.from(postsByDay.entries()).filter(([, n]) => n > 1);
+  const daysSinceLastPost = postDates.length ? Math.floor((now - postDates[0]) / (1000 * 60 * 60 * 24)) : 999;
+
+  // ---- Deterministic flags ----
+  const postingPatterns: string[] = [];
+  if (last7Days.length < 5) {
+    postingPatterns.push(`Only ${last7Days.length} post(s) in the last 7 days (target: 5+).`);
+  }
+  if (maxGap >= 2) {
+    postingPatterns.push(`Took a ${maxGap}-day break between posts (2+ day gap detected).`);
+  }
+  if (daysSinceLastPost >= 2) {
+    postingPatterns.push(`No new post in ${daysSinceLastPost} days.`);
+  }
+  if (daysWithMultiplePosts.length > 0) {
+    postingPatterns.push(`Posted more than once on ${daysWithMultiplePosts.length} day(s) — consider spacing posts out.`);
   }
 
-  const maxGap = Math.max(...gaps, 0);
-  const avgGap = gaps.length > 0 ? Math.floor(gaps.reduce((a, b) => a + b) / gaps.length) : 0;
-  const last7Days = recentPosts.filter(p => {
-    const daysSince = (Date.now() - new Date(p.createdAt).getTime()) / (1000 * 60 * 60 * 24);
-    return daysSince <= 7;
-  });
+  const engagementIssues: string[] = [];
+  const lowEngagementPosts = recentPosts.filter(p => (p.views || 0) >= 500 && engagementRate(p.views || 0, p.likes || 0, p.comments || 0, p.shares || 0, p.saves || 0) < 3);
+  if (lowEngagementPosts.length > 0) {
+    engagementIssues.push(`${lowEngagementPosts.length} post(s) have engagement under 3% — likes/comments are low relative to views.`);
+  }
 
-  // Build analysis prompt
-  const analysisPrompt = `You are a UGC (User-Generated Content) expert analyzing creator performance data.
+  const platformInsights: string[] = [];
+  if (tikTokPosts.length > 0 && instagramPosts.length > 0) {
+    if (tikTokEng > instagramEng * 1.5) {
+      platformInsights.push(`Instagram engagement (${instagramEng.toFixed(1)}%) is much lower than TikTok (${tikTokEng.toFixed(1)}%) — optimize IG.`);
+    } else if (instagramEng > tikTokEng * 1.5) {
+      platformInsights.push(`TikTok engagement (${tikTokEng.toFixed(1)}%) is much lower than Instagram (${instagramEng.toFixed(1)}%) — optimize TikTok.`);
+    }
+  }
+  if (tikTokPosts.length === 0 && instagramPosts.length > 0) {
+    platformInsights.push('No TikTok posts detected — creator may not be spending time on TikTok.');
+  }
+  if (instagramPosts.length === 0 && tikTokPosts.length > 0) {
+    platformInsights.push('No Instagram posts detected — creator may not be spending time on Instagram.');
+  }
+
+  // ---- Content quality signal (captions) ----
+  const captionsSample = recentPosts
+    .slice(0, 10)
+    .map(p => p.title)
+    .filter((t): t is string => !!t && t.trim().length > 0);
+
+  // ---- Build LLM prompt with rich data ----
+  const analysisPrompt = `You are a UGC (User-Generated Content) expert analyzing a creator's recent performance.
 
 Creator: ${creator.name}
-Platforms: ${typeof creator.platforms === 'string' ? creator.platforms : (Array.isArray(creator.platforms) ? (creator.platforms as string[]).join(', ') : 'Unknown')}
-Trial Status: ${creator.status === 'trial' ? 'Yes (Trial)' : 'Active'}
+Status: ${creator.status === 'trial' ? 'Trial' : creator.status === 'active' ? 'Active' : creator.status}
 
-RECENT PERFORMANCE DATA (Last 50 posts):
-- Total Posts: ${recentPosts.length}
-- Posts in Last 7 Days: ${last7Days.length}
-- TikTok Posts: ${tikTokPosts.length} (${tikTokViews.toLocaleString()} views)
-- Instagram Posts: ${instagramPosts.length} (${instagramViews.toLocaleString()} views)
-- Max Days Between Posts: ${maxGap} days
-- Average Days Between Posts: ${avgGap} days
-- Highest Performing Post: ${Math.max(...postsData.map(p => p.views), 0).toLocaleString()} views
-- Average Views Per Post: ${Math.round(postsData.reduce((sum, p) => sum + p.views, 0) / postsData.length).toLocaleString()}
+PERFORMANCE (last ${recentPosts.length} posts):
+- Posts in last 7 days: ${last7Days.length}
+- TikTok: ${tikTokPosts.length} posts, ${tikTokViews.toLocaleString()} views, ${tikTokEng.toFixed(1)}% avg engagement
+- Instagram: ${instagramPosts.length} posts, ${instagramViews.toLocaleString()} views, ${instagramEng.toFixed(1)}% avg engagement
+- Max gap between posts: ${maxGap} days | Avg gap: ${avgGap.toFixed(1)} days
+- Days since last post: ${daysSinceLastPost}
+- Best post: ${Math.max(...recentPosts.map(p => p.views || 0), 0).toLocaleString()} views
+- Avg views/post: ${Math.round(sumViews(recentPosts) / recentPosts.length).toLocaleString()}
 
-Recent Posts (last 10):
-${recentPosts.slice(0, 10).map((p, i) => `${i + 1}. ${new Date(p.createdAt).toLocaleDateString()} - ${p.platform} - ${p.views?.toLocaleString()} views`).join('\n')}
+SYSTEM-DETECTED FLAGS (already computed, incorporate and expand on these):
+- Posting: ${postingPatterns.length ? postingPatterns.join(' ') : 'None'}
+- Engagement: ${engagementIssues.length ? engagementIssues.join(' ') : 'None'}
+- Platform: ${platformInsights.length ? platformInsights.join(' ') : 'None'}
 
-Please provide:
-1. A brief 2-3 sentence overall performance summary
-2. Engagement analysis (compare TikTok vs Instagram performance, identify which platform is underperforming)
-3. Posting pattern flags (check for: 2+ day breaks, more than 1 post per day, less than 5 posts per week)
-4. Content quality concerns (suggest if hashtags/captions might need optimization based on engagement patterns)
-5. Platform-specific insights and recommendations
+RECENT CAPTIONS (evaluate hashtags/caption quality):
+${captionsSample.length ? captionsSample.map((c, i) => `${i + 1}. ${c.slice(0, 200)}`).join('\n') : 'No captions available.'}
 
-Format your response as JSON with this structure:
+Provide a concise analysis. Respond as JSON ONLY:
 {
-  "summary": "2-3 sentence overall performance summary",
-  "engagementIssues": ["issue1", "issue2"],
-  "postingPatterns": ["pattern1", "pattern2"],
-  "contentQuality": ["concern1", "concern2"],
-  "platformInsights": ["insight1", "insight2"]
+  "summary": "2-3 sentence overall performance summary for the manager",
+  "engagementIssues": ["..."],
+  "postingPatterns": ["..."],
+  "contentQuality": ["flag weak/missing hashtags or captions; if captions look good, say so"],
+  "platformInsights": ["TikTok vs IG comparison and recommendations"]
 }`;
 
   try {
     const response = await invokeLLM({
       messages: [
-        {
-          role: 'system',
-          content: 'You are a UGC performance analyst. Respond with valid JSON only, no markdown formatting.',
-        },
-        {
-          role: 'user',
-          content: analysisPrompt,
-        },
+        { role: 'system', content: 'You are a UGC performance analyst. Respond with valid JSON only, no markdown.' },
+        { role: 'user', content: analysisPrompt },
       ],
     });
 
-    // Parse LLM response
-    let analysisData;
+    const responseText = typeof response === 'string' ? response : (response as any).message?.content || '';
+    let analysisData: any;
     try {
-      // Extract JSON from response (in case it has extra text)
-      const responseText = typeof response === 'string' ? response : (response as any).message?.content || '';
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      const jsonStr = jsonMatch ? jsonMatch[0] : responseText;
-      analysisData = JSON.parse(jsonStr);
+      analysisData = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
     } catch {
-      // Fallback if JSON parsing fails
-      const responseText = typeof response === 'string' ? response : (response as any).message?.content || '';
-      analysisData = {
-        summary: responseText,
-        engagementIssues: [],
-        postingPatterns: [],
-        contentQuality: [],
-        platformInsights: [],
-      };
+      analysisData = { summary: responseText, engagementIssues: [], postingPatterns: [], contentQuality: [], platformInsights: [] };
     }
+
+    // Merge deterministic flags with LLM flags (dedupe)
+    const merge = (a: string[], b: string[]) => Array.from(new Set([...(a || []), ...(b || [])]));
 
     return {
       creatorId,
       creatorName: creator.name || 'Unknown',
       summary: analysisData.summary || 'Analysis complete.',
       flags: {
-        engagementIssues: analysisData.engagementIssues || [],
-        postingPatterns: analysisData.postingPatterns || [],
-        contentQuality: analysisData.contentQuality || [],
-        platformInsights: analysisData.platformInsights || [],
+        engagementIssues: merge(engagementIssues, analysisData.engagementIssues),
+        postingPatterns: merge(postingPatterns, analysisData.postingPatterns),
+        contentQuality: merge([], analysisData.contentQuality),
+        platformInsights: merge(platformInsights, analysisData.platformInsights),
       },
       generatedAt: new Date(),
     };
   } catch (error) {
+    // If the LLM fails, still return deterministic flags so the manager gets value
     console.error('LLM analysis failed:', error);
-    throw new Error(`Failed to generate AI summary: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return {
+      creatorId,
+      creatorName: creator.name || 'Unknown',
+      summary: `Rule-based summary (AI narrative unavailable): ${recentPosts.length} posts analyzed, ${last7Days.length} in the last 7 days. ${postingPatterns[0] || ''}`.trim(),
+      flags: {
+        engagementIssues,
+        postingPatterns,
+        contentQuality: [],
+        platformInsights,
+      },
+      generatedAt: new Date(),
+    };
   }
 }
 
 /**
- * Generate summaries for all creators
+ * Generate summaries for all (non-fired) creators sequentially.
  */
 export async function generateAllCreatorSummaries(): Promise<CreatorSummary[]> {
-  const creators = await db.listCreators();
+  const creators = (await db.listCreators()).filter(c => c.status !== 'fired');
   const summaries: CreatorSummary[] = [];
 
   for (const creator of creators) {
     try {
-      const summary = await generateCreatorSummary(creator.id);
-      summaries.push(summary);
-      // Add delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      summaries.push(await generateCreatorSummary(creator.id));
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
       console.error(`Failed to generate summary for ${creator.name}:`, error);
     }

@@ -135,3 +135,28 @@
 - [x] Create daily summary page UI
 - [x] Set up automated daily summary generation via heartbeat (deferred - can be added via heartbeat after deployment)
 - [x] Display summaries with flags and alerts
+
+
+## Trackr Sync Overhaul (FIXED - this session)
+- [x] Diagnose "API key not configured" — was reading from DB instead of env var
+- [x] Confirm TRACKR_API_KEY is set and readable by server
+- [x] Rewrite sync to IMPORT posts (not just update existing)
+- [x] Auto-create creators from Trackr usernames
+- [x] Capture full engagement data (likes, comments, shares, saves, caption)
+- [x] Match posts by trackrPostId then URL (no duplicates)
+- [x] Return detailed counts (fetched/new/updated/newCreators/unchanged)
+- [x] Frontend toast shows detailed sync result
+- [x] Verified end-to-end: 50 posts, 17 creators imported; re-run = 0 dupes
+- [x] Updated sync vitest with proper axios+db mocks (6 tests)
+
+## AI Summary Improvements (FIXED - this session)
+- [x] Fix platform matching (TikTok/Instagram case-insensitive)
+- [x] Use real engagement data for engagement-rate flags
+- [x] Add deterministic flags: <5 posts/week, 2+ day break, >1 post/day, no recent post
+- [x] Flag platform neglect (no TikTok or no Instagram activity)
+- [x] Evaluate captions/hashtags via LLM
+- [x] Graceful fallback to rule-based summary if LLM fails
+
+## Navigation Fix (this session)
+- [x] Replace "Page 1/Page 2" placeholders with real menu items
+- [x] Fix /ai-summaries route mismatch
