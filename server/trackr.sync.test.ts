@@ -209,7 +209,7 @@ describe('Trackr Sync Integration', () => {
     expect(getSpy).toHaveBeenCalledWith(
       'https://app.ugctrackr.com/api/external/v1/posts',
       expect.objectContaining({
-        params: { campaign_id: '0c300a5a-987d-4c2d-ac2f-c50a4bbbd98f' },
+        params: expect.objectContaining({ campaign_id: '0c300a5a-987d-4c2d-ac2f-c50a4bbbd98f', limit: '200' }),
         headers: expect.objectContaining({ Authorization: 'Bearer test-key' }),
       })
     );

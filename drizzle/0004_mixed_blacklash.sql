@@ -1,0 +1,1 @@
+ALTER TABLE `posts` ADD `is_crosspost_duplicate` int DEFAULT 0;

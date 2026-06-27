@@ -29,21 +29,43 @@ export interface SyncResult {
 }
 
 /**
- * Fetch all posts for the campaign from the Trackr API.
+ * Fetch ALL posts for the campaign from the Trackr API using cursor-based
+ * pagination (limit=200 per page, following next_cursor until exhausted).
  */
 export async function getTrackrPosts(apiKey?: string): Promise<TrackrPost[]> {
   const key = apiKey || process.env.TRACKR_API_KEY;
   if (!key) {
     throw new Error('Trackr API key not configured');
   }
-  const response = await axios.get(`${TRACKR_BASE_URL}/posts`, {
-    params: { campaign_id: CAMPAIGN_ID },
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  return response.data?.data || [];
+
+  const all: TrackrPost[] = [];
+  let cursor: string | null = null;
+
+  while (true) {
+    const params: Record<string, string> = {
+      campaign_id: CAMPAIGN_ID,
+      limit: '200',
+    };
+    if (cursor) params.cursor = cursor;
+
+    const response = await axios.get(`${TRACKR_BASE_URL}/posts`, {
+      params,
+      headers: {
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const posts: TrackrPost[] = response.data?.data || [];
+    all.push(...posts);
+
+    // The API returns meta.next_cursor when there are more pages.
+    const nextCursor = response.data?.meta?.next_cursor;
+    if (!nextCursor || posts.length === 0) break;
+    cursor = nextCursor;
+  }
+
+  return all;
 }
 
 /**
@@ -58,8 +80,62 @@ function normalizePlatform(platform: string): string {
 }
 
 /**
+ * Build a crosspost-group key: same creator + same title (trimmed, lowercased)
+ * + same calendar day. When a video is posted to both TikTok and Instagram on
+ * the same day with the same caption, they share this key and only the
+ * HIGHEST-VIEW version is used for payout (one $20 base per original video).
+ */
+function crosspostKey(username: string, title: string, postedAt: Date): string {
+  const day = postedAt.toISOString().slice(0, 10); // YYYY-MM-DD
+  const t = (title || '').trim().toLowerCase().slice(0, 80); // first 80 chars of caption
+  return `${username.toLowerCase()}|${day}|${t}`;
+}
+
+/**
+ * Deduplicate a list of Trackr posts so that crossposted videos (same creator,
+ * same caption, same day on TikTok + Instagram) are collapsed to ONE entry —
+ * the one with the highest view count. The other entries are kept in the
+ * returned map so we can still store them in the DB but mark them as
+ * crosspost duplicates (they won't earn a second $20 base).
+ *
+ * Returns:
+ *   primaryByKey   – Map<crosspostKey, TrackrPost>  (the canonical/highest-view post)
+ *   duplicateIds   – Set<string>                    (post_ids that are crosspost dupes)
+ */
+export function deduplicateCrossposts(posts: TrackrPost[]): {
+  primaryByKey: Map<string, TrackrPost>;
+  duplicateIds: Set<string>;
+} {
+  const primaryByKey = new Map<string, TrackrPost>();
+  const keyForPost = new Map<string, string>(); // post_id -> crosspostKey
+
+  for (const p of posts) {
+    const postedAt = p.posted_at ? new Date(p.posted_at) : new Date();
+    const key = crosspostKey(p.username, p.title, postedAt);
+    keyForPost.set(p.post_id, key);
+
+    const existing = primaryByKey.get(key);
+    if (!existing || (p.views || 0) > (existing.views || 0)) {
+      primaryByKey.set(key, p);
+    }
+  }
+
+  const duplicateIds = new Set<string>();
+  for (const p of posts) {
+    const key = keyForPost.get(p.post_id)!;
+    const primary = primaryByKey.get(key)!;
+    if (primary.post_id !== p.post_id) {
+      duplicateIds.add(p.post_id);
+    }
+  }
+
+  return { primaryByKey, duplicateIds };
+}
+
+/**
  * Sync posts from UGCTrackr API: import new posts, auto-create creators,
- * and update view/engagement counts on existing posts.
+ * update view/engagement counts on existing posts, and deduplicate crossposts
+ * so a video posted to both TikTok and Instagram only earns one $20 base.
  */
 export async function syncTrackrPosts(apiKey?: string): Promise<SyncResult> {
   const key = apiKey || process.env.TRACKR_API_KEY;
@@ -85,6 +161,9 @@ export async function syncTrackrPosts(apiKey?: string): Promise<SyncResult> {
   }
 
   result.fetched = trackrPosts.length;
+
+  // Identify crosspost duplicates before any DB writes.
+  const { duplicateIds } = deduplicateCrossposts(trackrPosts);
 
   // Load existing data once
   const existingCreators = await db.listCreators();
@@ -119,6 +198,7 @@ export async function syncTrackrPosts(apiKey?: string): Promise<SyncResult> {
     try {
       const usernameKey = (db.normalizeHandle(tp.username) || '').toLowerCase();
       const platform = normalizePlatform(tp.platform);
+      const isCrosspostDuplicate = duplicateIds.has(tp.post_id);
 
       // 1. Resolve or create the creator
       let creatorId = creatorByHandle.get(usernameKey) || createdCreatorIds.get(usernameKey);
@@ -170,6 +250,9 @@ export async function syncTrackrPosts(apiKey?: string): Promise<SyncResult> {
         saves: tp.saves || 0,
         title: tp.title || null,
         trackrPostId: tp.post_id,
+        // Mark crosspost duplicates so payout logic can skip the $20 base for them.
+        // They are still stored for view tracking, but won't earn a second base payment.
+        isCrosspostDuplicate: isCrosspostDuplicate ? 1 : 0,
       };
 
       if (existing) {

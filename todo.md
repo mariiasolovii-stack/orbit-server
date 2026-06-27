@@ -199,3 +199,16 @@
 - [x] Add vitest coverage (payouts.markpaid.test.ts): records payouts, advances lastPaidTier, $0 owed next cycle, pays only incremental difference after view growth (36 tests passing)
 - [x] Add pay-period scoping vitest (payouts.period.test.ts)
 - [x] TypeScript clean (pnpm check) + checkpoint
+
+## Round 7 - View count fix + crosspost deduplication + breakdown UI (this session) - COMPLETED
+- [x] Diagnose view-count gap: Trackr API uses cursor pagination (limit=200, next_cursor) — we were only fetching 50 of 2,602 posts
+- [x] Fix getTrackrPosts to paginate through all cursor pages (limit=200 per page)
+- [x] Add crosspost deduplication: same creator + same caption + same calendar day on 2 platforms → only highest-view post earns $20 base
+- [x] Add is_crosspost_duplicate column to posts schema + migration applied
+- [x] Update calcPayout to return $0/type='crosspost' for duplicate posts
+- [x] Add payouts.getBreakdown tRPC procedure: per-post detail for a creator+period (date, platform, views, URL, payout amount, crosspost flag)
+- [x] Rebuild PayoutQueue UI with expandable "See breakdown" panel per creator showing full video table with links, dates, platforms, views, and owed amounts
+- [x] Crosspost duplicates shown in a separate dashed section in the breakdown (tracked but not paid)
+- [x] Add vitest coverage: deduplicateCrossposts (4 tests), calcPayout crosspost (2 tests), getBreakdown (1 test) — 43 tests total, all passing
+- [x] Update trackr.sync.test.ts to expect new limit=200 param
+- [x] TypeScript clean (pnpm check) + checkpoint

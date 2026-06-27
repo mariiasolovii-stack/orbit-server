@@ -49,6 +49,11 @@ export function totalEarnedForViews(views: number): number {
  */
 export function calcPayout(post: any): { amount: number; type: string } {
   if (post.reviewStatus !== 'approved') return { amount: 0, type: 'pending' };
+  // Crosspost duplicates (same video on a 2nd platform) do NOT earn a second $20 base.
+  // They are tracked for views but excluded from payout.
+  if (post.isCrosspostDuplicate === 1 || post.isCrosspostDuplicate === true) {
+    return { amount: 0, type: 'crosspost' };
+  }
   const views = post.views || 0;
   if (views < MIN_QUALIFYING_VIEWS) return { amount: 0, type: 'pending' };
 
@@ -392,6 +397,56 @@ export const appRouter = router({
         }
 
         return { creatorId: input.creatorId, totalPaid, postsPaid };
+      }),
+
+    // Full per-post payout breakdown for a given creator + pay period.
+    // Returns every post in the period with its date, platform, views, URL,
+    // payout amount, and whether it is a crosspost duplicate.
+    getBreakdown: protectedProcedure
+      .input(
+        z.object({
+          creatorId: z.string(),
+          year: z.number().int().optional(),
+          month: z.number().int().min(0).max(11).optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        const now = new Date();
+        const year = input.year ?? now.getUTCFullYear();
+        const month = input.month ?? now.getUTCMonth();
+        const periodStart = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+        const periodEnd = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0));
+
+        const allPosts = await db.listPosts();
+        const rows = allPosts
+          .filter(p => {
+            if (p.creatorId !== input.creatorId) return false;
+            const d = p.postDate ? new Date(p.postDate) : null;
+            return d && d >= periodStart && d < periodEnd;
+          })
+          .map(p => {
+            const { amount, type } = calcPayout(p);
+            return {
+              id: p.id,
+              platform: p.platform,
+              postDate: p.postDate,
+              postUrl: p.postUrl,
+              title: (p as any).title || null,
+              views: p.views || 0,
+              likes: p.likes || 0,
+              comments: p.comments || 0,
+              shares: p.shares || 0,
+              saves: p.saves || 0,
+              reviewStatus: p.reviewStatus,
+              isCrosspostDuplicate: (p as any).isCrosspostDuplicate === 1,
+              lastPaidTier: p.lastPaidTier || 0,
+              payoutAmount: amount,
+              payoutType: type,
+            };
+          })
+          .sort((a, b) => new Date(b.postDate).getTime() - new Date(a.postDate).getTime());
+
+        return rows;
       }),
   }),
 
