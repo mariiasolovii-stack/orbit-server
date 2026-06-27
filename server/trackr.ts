@@ -256,8 +256,11 @@ export async function syncTrackrPosts(apiKey?: string): Promise<SyncResult> {
       };
 
       if (existing) {
-        // Update if any engagement metric changed
+        // Update if any engagement metric changed OR if the post is attributed
+        // to the wrong creator (e.g. a ghost that was later merged).
+        const creatorMismatch = existing.creatorId !== creatorId;
         const changed =
+          creatorMismatch ||
           existing.views !== engagement.views ||
           existing.likes !== engagement.likes ||
           existing.comments !== engagement.comments ||
@@ -266,7 +269,10 @@ export async function syncTrackrPosts(apiKey?: string): Promise<SyncResult> {
           !existing.trackrPostId;
 
         if (changed) {
-          await db.updatePost(existing.id, engagement as any);
+          await db.updatePost(existing.id, {
+            ...engagement,
+            ...(creatorMismatch ? { creatorId } : {}),
+          } as any);
           result.updatedPosts++;
         } else {
           result.unchanged++;

@@ -212,3 +212,13 @@
 - [x] Add vitest coverage: deduplicateCrossposts (4 tests), calcPayout crosspost (2 tests), getBreakdown (1 test) — 43 tests total, all passing
 - [x] Update trackr.sync.test.ts to expect new limit=200 param
 - [x] TypeScript clean (pnpm check) + checkpoint
+
+## Round 8 - Creator attribution fix + Merge UI (this session) - COMPLETED
+- [x] Diagnose Rachel's missing breakout videos: ghost creator "fashion_with_rach" [fired] was absorbing all her IG posts (255k views)
+- [x] Identified 6 ghost/duplicate creator pairs: Rachel, Valentina(Colombia), Valentina(Mexico), Lydia, Jacky, Selena
+- [x] Merged all 6 ghost creators into their correct active counterparts via SQL (posts reassigned, ghosts deleted)
+- [x] Post-merge counts: Rachel 17 posts (34.9k views), Valentina(Mexico) 217 posts (19.9M views), Valentina(Colombia) 35 posts (5.2M views), Lydia 82 posts (108k views), Jacky 97 posts (1.3M views), Selena 17 posts (42k views)
+- [x] Fixed sync root cause: sync now also updates creator_id if an existing post is attributed to the wrong creator (creatorMismatch check)
+- [x] Added creators.merge tRPC mutation: reassigns all posts from sourceId to targetId, deletes source creator
+- [x] Added Merge button to Creator Roster UI: opens a dialog to select target creator, with destructive confirmation
+- [x] TypeScript clean (pnpm check) + 43 tests passing + checkpoint

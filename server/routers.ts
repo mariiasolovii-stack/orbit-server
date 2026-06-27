@@ -195,6 +195,35 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         return db.restoreCreator(input.id);
       }),
+
+    // Merge a duplicate/ghost creator into a target creator:
+    // reassigns all posts from sourceId to targetId, then deletes sourceId.
+    merge: protectedProcedure
+      .input(z.object({
+        sourceId: z.string(),   // creator to delete (ghost/duplicate)
+        targetId: z.string(),   // creator to keep (the real one)
+      }))
+      .mutation(async ({ input }) => {
+        if (input.sourceId === input.targetId) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Source and target must be different creators' });
+        }
+        const dbConn = await db.getDb();
+        if (!dbConn) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Database not available' });
+
+        // Reassign all posts from source to target
+        const { posts: postsTable } = await import('../drizzle/schema');
+        const { eq } = await import('drizzle-orm');
+        const [updateResult] = await dbConn.update(postsTable)
+          .set({ creatorId: input.targetId })
+          .where(eq(postsTable.creatorId, input.sourceId)) as any;
+        const movedPosts = updateResult?.affectedRows ?? 0;
+
+        // Delete the source creator
+        const { creators: creatorsTable } = await import('../drizzle/schema');
+        await dbConn.delete(creatorsTable).where(eq(creatorsTable.id, input.sourceId));
+
+        return { movedPosts, deletedCreatorId: input.sourceId };
+      }),
   }),
 
   // ============ POSTS ============

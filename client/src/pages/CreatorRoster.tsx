@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Edit2, Archive, CheckCircle, Clock, XCircle, RotateCcw } from "lucide-react";
+import { Loader2, Plus, Edit2, Archive, CheckCircle, Clock, XCircle, RotateCcw, Merge } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -32,6 +32,10 @@ export default function CreatorRoster() {
   // Archive confirmation dialog state
   const [archiveTarget, setArchiveTarget] = useState<any | null>(null);
   const [keepSyncing, setKeepSyncing] = useState(true);
+
+  // Merge creator dialog state
+  const [mergeSource, setMergeSource] = useState<any | null>(null);
+  const [mergeTargetId, setMergeTargetId] = useState<string>('');
 
   const utils = trpc.useUtils();
   const creatorsQuery = trpc.creators.list.useQuery();
@@ -82,6 +86,16 @@ export default function CreatorRoster() {
 
   const restoreMutation = trpc.creators.restore.useMutation({
     onSuccess: () => { refetchAll(); toast.success('Creator restored to roster'); },
+  });
+
+  const mergeMutation = trpc.creators.merge.useMutation({
+    onSuccess: (data) => {
+      refetchAll();
+      setMergeSource(null);
+      setMergeTargetId('');
+      toast.success(`Merged: ${data.movedPosts} post(s) moved to the target creator`);
+    },
+    onError: (error) => toast.error(error.message || 'Merge failed'),
   });
 
   const handleSubmit = () => {
@@ -288,6 +302,11 @@ export default function CreatorRoster() {
                             title="Archive / remove from roster">
                             <Archive className="h-4 w-4" />
                           </Button>
+                          <Button size="sm" variant="outline"
+                            onClick={() => { setMergeSource(creator); setMergeTargetId(''); }}
+                            title="Merge duplicate creator into another">
+                            <Merge className="h-4 w-4" />
+                          </Button>
                         </>
                       ) : (
                         <Button size="sm" variant="outline"
@@ -342,6 +361,49 @@ export default function CreatorRoster() {
               disabled={archiveMutation.isPending}>
               {archiveMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Archive
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Merge creator dialog */}
+      <Dialog open={!!mergeSource} onOpenChange={(open) => !open && setMergeSource(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Merge "{mergeSource?.name}" into another creator</DialogTitle>
+            <DialogDescription>
+              All posts from <strong>{mergeSource?.name}</strong> will be reassigned to the selected creator,
+              then <strong>{mergeSource?.name}</strong> will be permanently deleted. This is useful when a
+              duplicate ghost creator was auto-created during sync.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>Move all posts to:</Label>
+            <Select value={mergeTargetId} onValueChange={setMergeTargetId}>
+              <SelectTrigger><SelectValue placeholder="Select target creator…" /></SelectTrigger>
+              <SelectContent>
+                {creatorsQuery.data
+                  ?.filter((c: any) => c.id !== mergeSource?.id)
+                  .map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name} [{c.status}]
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            {mergeTargetId && (
+              <p className="text-xs text-destructive font-medium">
+                ⚠ This cannot be undone. "{mergeSource?.name}" will be deleted.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMergeSource(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={!mergeTargetId || mergeMutation.isPending}
+              onClick={() => mergeMutation.mutate({ sourceId: mergeSource.id, targetId: mergeTargetId })}>
+              {mergeMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Merge &amp; Delete
             </Button>
           </DialogFooter>
         </DialogContent>
