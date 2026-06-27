@@ -10,50 +10,55 @@ import * as trackr from "./trackr";
 // ============ PAYOUT CALCULATION HELPERS ============
 
 /**
- * Calculate pending payout for a single post based on retroactive tier logic.
- * Returns the incremental amount owed (new tier amount - last paid tier).
+ * Universal payout model — applies to ALL creators (trial and active alike).
+ * Everyone earns a $20 base per qualifying video plus retroactive view-tier
+ * bonuses. "Trial" is now only a roster label (no separate pay rules) until a
+ * creator is manually re-tagged "active".
+ *
+ * Bonus tiers (cumulative, retroactive — pay only the incremental difference):
+ *   10k -> +$10, 25k -> +$50, 50k -> +$150, 100k -> +$300,
+ *   250k -> +$400, 1M -> +$500, 1.5M -> +$1,000, 5M -> +$1,500
+ * Base rate ($20) applies once the post has at least the minimum qualifying views.
  */
-async function calcPendingPayout(post: any): Promise<number> {
-  if (post.reviewStatus !== 'approved') return 0;
-  if ((post.views || 0) < 300) return 0; // Min 300 views to qualify
-  
-  const tiers = await db.listPayoutTiers();
-  const sorted = [...tiers].sort((a, b) => b.viewsThreshold - a.viewsThreshold);
-  const tier = sorted.find(t => post.views >= t.viewsThreshold);
-  const owed = tier ? tier.payoutAmount : 0;
-  const lastPaid = post.lastPaidTier || 0;
-  
-  return Math.max(0, owed - lastPaid);
+export const BASE_RATE = 20;
+export const MIN_QUALIFYING_VIEWS = 300;
+export const BONUS_TIERS = [
+  { views: 5000000, amount: 1500 },
+  { views: 1500000, amount: 1000 },
+  { views: 1000000, amount: 500 },
+  { views: 250000, amount: 400 },
+  { views: 100000, amount: 300 },
+  { views: 50000, amount: 150 },
+  { views: 25000, amount: 50 },
+  { views: 10000, amount: 10 },
+];
+
+/**
+ * Compute the TOTAL earned for a post at its current view count under the
+ * universal model: $20 base + the single highest bonus tier reached.
+ */
+export function totalEarnedForViews(views: number): number {
+  if ((views || 0) < MIN_QUALIFYING_VIEWS) return 0;
+  const tier = BONUS_TIERS.find(t => views >= t.views);
+  return BASE_RATE + (tier ? tier.amount : 0);
 }
 
 /**
- * Calculate trial creator payout based on warmup posts and view tiers.
+ * Calculate the incremental pending payout for a single post (retroactive):
+ * total earned at current views minus what has already been paid.
  */
-async function calcTrialCreatorPayout(post: any): Promise<{ amount: number; type: string }> {
+export function calcPayout(post: any): { amount: number; type: string } {
   if (post.reviewStatus !== 'approved') return { amount: 0, type: 'pending' };
-  if ((post.views || 0) < 300) return { amount: 0, type: 'pending' };
-  
   const views = post.views || 0;
-  const lastPaid = post.lastPaidTier || 0;
-  
-  // Define trial creator tiers
-  const trialTiers = [
-    { views: 5000000, amount: 1500 },
-    { views: 1500000, amount: 1000 },
-    { views: 1000000, amount: 500 },
-    { views: 250000, amount: 400 },
-    { views: 100000, amount: 300 },
-    { views: 50000, amount: 150 },
-    { views: 25000, amount: 50 },
-    { views: 10000, amount: 10 },
-  ];
-  
-  const tier = trialTiers.find(t => views >= t.views);
-  const owed = tier ? tier.amount : 20; // $20 base rate per video
-  
+  if (views < MIN_QUALIFYING_VIEWS) return { amount: 0, type: 'pending' };
+
+  const total = totalEarnedForViews(views);
+  const lastPaid = post.lastPaidTier || 0; // stores cumulative amount already paid
+  const tier = BONUS_TIERS.find(t => views >= t.views);
+
   return {
-    amount: Math.max(0, owed - lastPaid),
-    type: tier ? 'bonus' : 'post'
+    amount: Math.max(0, total - lastPaid),
+    type: tier ? 'bonus' : 'base',
   };
 }
 
@@ -70,8 +75,19 @@ export const appRouter = router({
 
   // ============ CREATORS ============
   creators: router({
+    // Active roster (non-archived)
     list: protectedProcedure.query(async () => {
+      return db.listActiveCreators();
+    }),
+
+    // All creators including archived
+    listAll: protectedProcedure.query(async () => {
       return db.listCreators();
+    }),
+
+    // Archived / removed creators
+    listArchived: protectedProcedure.query(async () => {
+      return db.listArchivedCreators();
     }),
 
     get: protectedProcedure
@@ -103,8 +119,8 @@ export const appRouter = router({
           baseRate: input.baseRate,
           retainerAmount: input.retainerAmount,
           platforms: input.platforms ? JSON.stringify(input.platforms) : null,
-          tiktokHandle: input.tiktokHandle,
-          instagramHandle: input.instagramHandle,
+          tiktokHandle: db.normalizeHandle(input.tiktokHandle),
+          instagramHandle: db.normalizeHandle(input.instagramHandle),
           startDate: input.startDate,
           docusignStatus: 'pending',
           notes: input.notes,
@@ -138,6 +154,12 @@ export const appRouter = router({
         if (updateData.email === "") {
           updateData.email = null;
         }
+        if (input.data.tiktokHandle !== undefined) {
+          updateData.tiktokHandle = db.normalizeHandle(input.data.tiktokHandle);
+        }
+        if (input.data.instagramHandle !== undefined) {
+          updateData.instagramHandle = db.normalizeHandle(input.data.instagramHandle);
+        }
         return db.updateCreator(input.id, updateData);
       }),
 
@@ -147,10 +169,26 @@ export const appRouter = router({
         return db.updateCreator(input.id, { status: 'active' });
       }),
 
+    // Mark as fired (status only) - they stay on the roster so you can keep watching their views
     fire: protectedProcedure
       .input(z.object({ id: z.string() }))
       .mutation(async ({ input }) => {
         return db.updateCreator(input.id, { status: 'fired' });
+      }),
+
+    // Archive (soft-delete): removes from active roster but keeps all post/view data.
+    // keepSyncing controls whether Trackr keeps pulling this creator's handles.
+    archive: protectedProcedure
+      .input(z.object({ id: z.string(), keepSyncing: z.boolean().default(true) }))
+      .mutation(async ({ input }) => {
+        return db.archiveCreator(input.id, input.keepSyncing);
+      }),
+
+    // Restore an archived creator back to the active roster
+    restore: protectedProcedure
+      .input(z.object({ id: z.string() }))
+      .mutation(async ({ input }) => {
+        return db.restoreCreator(input.id);
       }),
   }),
 
@@ -254,31 +292,107 @@ export const appRouter = router({
       return db.listPayouts();
     }),
 
-    calculatePending: protectedProcedure.query(async () => {
-      const posts = await db.listPosts();
-      const creators = await db.listCreators();
-      
-      const pending: Record<string, number> = {};
-      
-      for (const post of posts) {
-        const creator = creators.find(c => c.id === post.creatorId);
-        if (!creator) continue;
-        
-        let amount = 0;
-        if (creator.status === 'trial') {
-          const trial = await calcTrialCreatorPayout(post);
-          amount = trial.amount;
-        } else if (creator.status === 'active') {
-          amount = await calcPendingPayout(post);
+    // Pending payouts for a calendar-month pay period.
+    // `month` is 0-indexed (0 = January). Defaults to the current month.
+    calculatePending: protectedProcedure
+      .input(
+        z
+          .object({
+            year: z.number().int().optional(),
+            month: z.number().int().min(0).max(11).optional(),
+          })
+          .optional()
+      )
+      .query(async ({ input }) => {
+        const now = new Date();
+        const year = input?.year ?? now.getUTCFullYear();
+        const month = input?.month ?? now.getUTCMonth();
+        const periodStart = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+        const periodEnd = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0)); // exclusive
+
+        const posts = await db.listPosts();
+        const creators = await db.listCreators();
+
+        const pending: Record<string, number> = {};
+
+        for (const post of posts) {
+          const creator = creators.find(c => c.id === post.creatorId);
+          if (!creator) continue;
+          // Fired/archived creators are not owed new payouts.
+          if (creator.status === 'fired' || (creator as any).archived === 1) continue;
+
+          // Scope to the selected calendar-month pay period by post date.
+          const postDate = post.postDate ? new Date(post.postDate) : null;
+          if (!postDate || postDate < periodStart || postDate >= periodEnd) continue;
+
+          // Universal payout model for everyone (trial + active).
+          const { amount } = calcPayout(post);
+          if (amount > 0) {
+            pending[post.creatorId] = (pending[post.creatorId] || 0) + amount;
+          }
         }
-        
-        if (amount > 0) {
-          pending[post.creatorId] = (pending[post.creatorId] || 0) + amount;
+
+        return pending;
+      }),
+
+    // Record a payment for one creator's outstanding balance in a given pay
+    // period. This advances each qualifying post's `lastPaidTier` to its current
+    // total earned so the retroactive math never re-pays the same amount, and
+    // writes a payout history row per post. `month` is 0-indexed.
+    markPaid: protectedProcedure
+      .input(
+        z.object({
+          creatorId: z.string(),
+          year: z.number().int().optional(),
+          month: z.number().int().min(0).max(11).optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const now = new Date();
+        const year = input.year ?? now.getUTCFullYear();
+        const month = input.month ?? now.getUTCMonth();
+        const periodStart = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+        const periodEnd = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0)); // exclusive
+
+        const creator = await db.getCreator(input.creatorId);
+        if (!creator) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Creator not found' });
         }
-      }
-      
-      return pending;
-    }),
+
+        const posts = await db.listPosts();
+        const payoutDate = new Date();
+        let totalPaid = 0;
+        let postsPaid = 0;
+
+        for (const post of posts) {
+          if (post.creatorId !== input.creatorId) continue;
+
+          // Scope to the selected calendar-month pay period by post date.
+          const postDate = post.postDate ? new Date(post.postDate) : null;
+          if (!postDate || postDate < periodStart || postDate >= periodEnd) continue;
+
+          const { amount, type } = calcPayout(post);
+          if (amount <= 0) continue;
+
+          // Advance lastPaidTier to the full total earned at current views so the
+          // incremental difference becomes 0 until the post crosses a higher tier.
+          const newPaidTotal = totalEarnedForViews(post.views || 0);
+          await db.updatePost(post.id, { lastPaidTier: newPaidTotal });
+          await db.createPayout({
+            creatorId: input.creatorId,
+            postId: post.id,
+            amount,
+            payoutType: type === 'bonus' ? 'bonus' : 'post',
+            payoutDate,
+            notes: `Marked paid for ${year}-${String(month + 1).padStart(2, '0')} pay period`,
+          } as any);
+
+          totalPaid += amount;
+          postsPaid += 1;
+        }
+
+        return { creatorId: input.creatorId, totalPaid, postsPaid };
+      }),
   }),
 
   // ============ SCRIPTS ============

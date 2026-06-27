@@ -49,7 +49,7 @@ export default function AISummaries() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">AI Creator Summaries</h1>
-            <p className="text-muted-foreground mt-2">Daily AI-powered performance analysis and alerts</p>
+            <p className="text-muted-foreground mt-2">AI analysis of each creator's whole profile plus the last 7 days</p>
           </div>
           <Button 
             onClick={handleGenerateAll}
@@ -63,7 +63,7 @@ export default function AISummaries() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            AI summaries analyze engagement, posting patterns, content quality, and platform-specific performance. Flags help identify optimization opportunities.
+Summaries combine the creator's full posting history with their last 7 days: how engagement looks (likes + comments + shares + saves relative to views), their general posting schedule, TikTok vs Instagram and short- vs long-form performance, which posts work best, and flags for 2+ day breaks, posting more than once a day, posting under 5x/week, weak hashtags/captions, and neglected platforms.
           </AlertDescription>
         </Alert>
 
@@ -108,6 +108,31 @@ export default function AISummaries() {
                         <div className="bg-muted p-4 rounded-lg">
                           <p className="text-sm">{summary.summary}</p>
                         </div>
+
+                        {summary.metrics && summary.metrics.totalPosts > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div className="rounded-md border p-3">
+                              <p className="text-xs text-muted-foreground">Total posts</p>
+                              <p className="text-lg font-semibold">{summary.metrics.totalPosts}</p>
+                              <p className="text-xs text-muted-foreground">{summary.metrics.postsLast7Days} in last 7d</p>
+                            </div>
+                            <div className="rounded-md border p-3">
+                              <p className="text-xs text-muted-foreground">Avg views/post</p>
+                              <p className="text-lg font-semibold">{summary.metrics.avgViewsAllTime.toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground">{summary.metrics.avgViewsLast7Days.toLocaleString()} last 7d</p>
+                            </div>
+                            <div className="rounded-md border p-3">
+                              <p className="text-xs text-muted-foreground">TikTok eng.</p>
+                              <p className="text-lg font-semibold">{summary.metrics.tiktokEngagement}%</p>
+                              <p className="text-xs text-muted-foreground">{summary.metrics.tiktokPosts} posts</p>
+                            </div>
+                            <div className="rounded-md border p-3">
+                              <p className="text-xs text-muted-foreground">Instagram eng.</p>
+                              <p className="text-lg font-semibold">{summary.metrics.instagramEngagement}%</p>
+                              <p className="text-xs text-muted-foreground">{summary.metrics.instagramPosts} posts</p>
+                            </div>
+                          </div>
+                        )}
                         
                         {summary.flags?.engagementIssues?.length > 0 && (
                           <div className="space-y-2">

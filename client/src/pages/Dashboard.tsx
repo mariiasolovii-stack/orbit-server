@@ -123,47 +123,30 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Trial Creator Progress */}
+        {/* Trial Creator Performance */}
         {creatorsQuery.data?.filter(c => c.status === 'trial').length ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Trial Creator Progress</CardTitle>
-              <CardDescription>Days remaining and performance toward 10k view goal</CardDescription>
+              <CardTitle className="text-base">Trial Creator Performance</CardTitle>
+              <CardDescription>Trial creators are paid on the same tiers as active creators. There is no fixed trial length — promote them to "Active" whenever you're ready.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {creatorsQuery.data
                 .filter(c => c.status === 'trial')
                 .map((creator) => {
-                  const trialDays = 14;
-                  const startDate = new Date(creator.createdAt);
-                  const endDate = new Date(startDate.getTime() + trialDays * 24 * 60 * 60 * 1000);
-                  const today = new Date();
-                  const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                  const daysUsed = trialDays - Math.max(0, daysRemaining);
-                  const progressPercent = (daysUsed / trialDays) * 100;
-                  
                   const creatorPosts = postsQuery.data?.filter(p => p.creatorId === creator.id) || [];
                   const creatorViews = creatorPosts.reduce((sum, p) => sum + (p.views || 0), 0);
                   const viewProgress = Math.min((creatorViews / 10000) * 100, 100);
-                  
+
                   return (
                     <div key={creator.id} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <p className="font-medium text-sm">{creator.name}</p>
-                        <Badge variant="secondary" className="text-xs">{Math.max(0, daysRemaining)} days left</Badge>
+                        <Badge variant="secondary" className="text-xs">{creatorPosts.length} posts</Badge>
                       </div>
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Trial Progress</span>
-                          <span>{daysUsed}/{trialDays} days</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${progressPercent}%` }} />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>View Goal (10k)</span>
+                          <span>Toward 10k-view milestone</span>
                           <span>{creatorViews.toLocaleString()} / 10,000</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">

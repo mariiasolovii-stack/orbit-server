@@ -91,10 +91,50 @@ export async function getUserByOpenId(openId: string) {
 
 // ============ CREATORS ============
 
+/** Strip a leading @ and trim/lowercase-safe whitespace from a handle. Returns null for empty. */
+export function normalizeHandle(handle?: string | null): string | null {
+  if (handle == null) return null;
+  const cleaned = handle.trim().replace(/^@+/, "").trim();
+  return cleaned.length > 0 ? cleaned : null;
+}
+
+// Returns ALL creators (active + archived)
 export async function listCreators(): Promise<Creator[]> {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(creators).orderBy(desc(creators.createdAt));
+}
+
+// Returns only non-archived creators (the working roster)
+export async function listActiveCreators(): Promise<Creator[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(creators).where(eq(creators.archived, 0)).orderBy(desc(creators.createdAt));
+}
+
+// Returns only archived creators
+export async function listArchivedCreators(): Promise<Creator[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(creators).where(eq(creators.archived, 1)).orderBy(desc(creators.archivedAt));
+}
+
+// Soft-delete: archive a creator (keeps their posts + view data)
+export async function archiveCreator(id: string, syncEnabled: boolean): Promise<Creator> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(creators).set({ archived: 1, archivedAt: new Date(), syncEnabled: syncEnabled ? 1 : 0 } as any).where(eq(creators.id, id));
+  const result = await db.select().from(creators).where(eq(creators.id, id)).limit(1);
+  return result[0];
+}
+
+// Restore an archived creator back to the roster
+export async function restoreCreator(id: string): Promise<Creator> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(creators).set({ archived: 0, archivedAt: null } as any).where(eq(creators.id, id));
+  const result = await db.select().from(creators).where(eq(creators.id, id)).limit(1);
+  return result[0];
 }
 
 export async function getCreator(id: string): Promise<Creator | undefined> {

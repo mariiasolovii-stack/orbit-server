@@ -92,10 +92,16 @@ export async function syncTrackrPosts(apiKey?: string): Promise<SyncResult> {
 
   // Build lookup maps. Match creators by tiktok/instagram handle OR name (username).
   const creatorByHandle = new Map<string, string>(); // lowercase handle/name -> creatorId
+  // Track which creators have syncing disabled (archived + opted out)
+  const syncDisabled = new Set<string>(); // creatorId
   for (const c of existingCreators) {
-    if (c.name) creatorByHandle.set(c.name.toLowerCase(), c.id);
-    if (c.tiktokHandle) creatorByHandle.set(c.tiktokHandle.toLowerCase().replace(/^@/, ''), c.id);
-    if (c.instagramHandle) creatorByHandle.set(c.instagramHandle.toLowerCase().replace(/^@/, ''), c.id);
+    if ((c as any).syncEnabled === 0) syncDisabled.add(c.id);
+    const name = db.normalizeHandle(c.name);
+    const tt = db.normalizeHandle(c.tiktokHandle);
+    const ig = db.normalizeHandle(c.instagramHandle);
+    if (name) creatorByHandle.set(name.toLowerCase(), c.id);
+    if (tt) creatorByHandle.set(tt.toLowerCase(), c.id);
+    if (ig) creatorByHandle.set(ig.toLowerCase(), c.id);
   }
 
   // Posts can be matched by trackrPostId first, then by URL.
@@ -111,19 +117,27 @@ export async function syncTrackrPosts(apiKey?: string): Promise<SyncResult> {
 
   for (const tp of trackrPosts) {
     try {
-      const usernameKey = (tp.username || '').toLowerCase().replace(/^@/, '');
+      const usernameKey = (db.normalizeHandle(tp.username) || '').toLowerCase();
       const platform = normalizePlatform(tp.platform);
 
       // 1. Resolve or create the creator
       let creatorId = creatorByHandle.get(usernameKey) || createdCreatorIds.get(usernameKey);
+
+      // If this creator exists but has syncing disabled (archived + opted out), skip entirely.
+      if (creatorId && syncDisabled.has(creatorId)) {
+        result.unchanged++;
+        continue;
+      }
+
       if (!creatorId) {
+        const cleanUsername = db.normalizeHandle(tp.username);
         const platformField = platform === 'TikTok'
-          ? { tiktokHandle: tp.username }
+          ? { tiktokHandle: cleanUsername }
           : platform === 'Instagram'
-            ? { instagramHandle: tp.username }
+            ? { instagramHandle: cleanUsername }
             : {};
         const newCreator = await db.createCreator({
-          name: tp.username,
+          name: cleanUsername || tp.username,
           email: null,
           status: 'trial',
           compType: 'ppp',
@@ -181,7 +195,9 @@ export async function syncTrackrPosts(apiKey?: string): Promise<SyncResult> {
           platform,
           postDate: postedAt,
           postUrl: tp.link,
-          reviewStatus: 'pending',
+          // Trackr-synced posts are already live/verified on the platform,
+          // so auto-approve them (manual posts still default to 'pending').
+          reviewStatus: 'approved',
           isTrialPost: 0,
           lastPaidTier: 0,
           notes: null,

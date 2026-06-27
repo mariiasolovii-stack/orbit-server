@@ -42,6 +42,9 @@ export const creators = mysqlTable("creators", {
   startDate: timestamp("start_date"), // trial start date
   docusignStatus: mysqlEnum("docusign_status", ["pending", "sent", "signed"]).default("pending"),
   docusignEnvelopeId: varchar("docusign_envelope_id", { length: 255 }),
+  archived: int("archived").default(0), // boolean: 1 = archived/removed from active roster
+  archivedAt: timestamp("archived_at"), // when archived
+  syncEnabled: int("sync_enabled").default(1), // boolean: 1 = keep syncing this creator's handles from Trackr
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),

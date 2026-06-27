@@ -160,3 +160,42 @@
 ## Navigation Fix (this session)
 - [x] Replace "Page 1/Page 2" placeholders with real menu items
 - [x] Fix /ai-summaries route mismatch
+
+
+## Round 3 Refinements (this session) - COMPLETED
+- [x] Fired/deleted creators move to an "Archived/Inactive" view (soft-delete, not hard-delete) so their post views are still tracked
+- [x] Normalize handles: strip leading @ on save and on Trackr matching; clean existing handles
+- [x] Remove the fixed 14-day trial duration; trial creators stay trial and are paid like active until re-tagged "active"
+- [x] Update Overview trial section: drop the "days remaining" countdown, keep view goal / performance
+- [x] Clarify + refine Trackr sync: document what happens, keep inactive-creator data without cluttering active roster
+- [x] Track views for active creators being phased out (keep syncing their handles even after firing)
+- [x] Deepen AI summary: analyze overall profile + last 7 days, posting schedule/habits, which posts perform best and on which platform/format (short vs long form)
+- [x] Explain how engagement is calculated (in UI + to user)
+- [x] Fixed LLM response parsing (choices[0].message.content + json_object) - rich narratives now work
+- [x] Tests (29 passing) + checkpoint
+
+
+## Round 4 - Payout Unification & Pay Periods (this session) - COMPLETED
+- [x] Unify payout: ALL creators paid $20 base + bonus tiers (10k=$10, 25k=$50, 50k=$150, 100k=$300, 250k=$400, 1M=$500, 1.5M=$1,000, 5M=$1,500), retroactive/incremental
+- [x] Remove separate trial payout function; trial is just a label now
+- [x] Scope payout calculation to calendar-month pay period (e.g. June 1-30)
+- [x] Add month selector to Payout Queue (default = current month)
+- [x] Update Settings payout tiers display to match universal model
+- [x] Add in-app help: how Trackr sync behaves (imports/updates/archived)
+- [x] Add in-app help: how engagement is calculated (likes+comments+shares+saves / views)
+- [x] Update/rewrite payout vitest for unified model + pay period (30 tests passing)
+- [x] Save checkpoint after verification
+
+## Round 5 - Trackr posts auto-approval (this session) - COMPLETED
+- [x] Trackr-synced posts auto-set to "approved" (already live/verified), manual posts stay "pending"
+- [x] Backfill existing 50 synced pending posts to approved
+- [x] Verify June payout now reflects owed amounts ($1,070 across 10 creators)
+- [x] Update sync test for auto-approval
+- [x] Clean up temp scripts + checkpoint
+
+## Round 6 - Mark Paid flow (this session) - COMPLETED
+- [x] Add payouts.markPaid tRPC mutation: records a payout row per qualifying post and advances each post's lastPaidTier to its current total earned (calendar-month scoped)
+- [x] Wire the Payout Queue "Mark Paid" button to the mutation with loading state + toast + query invalidation
+- [x] Add vitest coverage (payouts.markpaid.test.ts): records payouts, advances lastPaidTier, $0 owed next cycle, pays only incremental difference after view growth (36 tests passing)
+- [x] Add pay-period scoping vitest (payouts.period.test.ts)
+- [x] TypeScript clean (pnpm check) + checkpoint

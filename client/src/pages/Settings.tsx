@@ -112,6 +112,50 @@ export default function Settings() {
                   {upsertMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   Save API Key
                 </Button>
+                <p className="text-xs text-muted-foreground border-t pt-3">
+                  Note: For security, the active API key is stored as a server-side
+                  environment variable (<code>TRACKR_API_KEY</code>) and is never exposed to the
+                  browser. The sync always runs through a server proxy.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle>How Trackr Sync Works</CardTitle>
+                <CardDescription>
+                  What happens each time you click “Sync Trackr Posts”
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  The sync pulls every post in your Trackr campaign and reconciles it with your
+                  roster. Specifically:
+                </p>
+                <ul className="list-disc pl-5 space-y-1.5">
+                  <li>
+                    <span className="text-foreground font-medium">Existing posts</span> have their
+                    view counts and engagement (likes, comments, shares, saves) updated. Nothing is
+                    duplicated — posts are matched by their Trackr ID / link.
+                  </li>
+                  <li>
+                    <span className="text-foreground font-medium">New creators</span> found in Trackr
+                    are auto-added to your roster as <span className="font-medium">trial</span> so you
+                    can re-tag them. Handles are matched by username (the leading “@” is ignored, so
+                    you can type handles either way).
+                  </li>
+                  <li>
+                    <span className="text-foreground font-medium">Fired creators</span> who are still
+                    on the roster keep syncing, so you can track the views their handles continue to
+                    earn while being phased out.
+                  </li>
+                  <li>
+                    <span className="text-foreground font-medium">Archived creators with syncing
+                    turned off</span> are skipped entirely — this keeps old, inactive profiles that
+                    still live in Trackr from cluttering your active roster, while their historical
+                    data is preserved.
+                  </li>
+                </ul>
               </CardContent>
             </Card>
           </TabsContent>
@@ -120,12 +164,19 @@ export default function Settings() {
           <TabsContent value="payouts">
             <Card>
               <CardHeader>
-                <CardTitle>Payout Tiers</CardTitle>
+                <CardTitle>Payout Bonus Tiers</CardTitle>
                 <CardDescription>
-                  Define view thresholds and corresponding payout amounts
+                  View thresholds and bonus amounts that apply on top of the $20 base per video
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
+                  Every creator earns a <span className="text-foreground font-medium">$20 base per
+                  qualifying video</span> (300+ views). The tiers below are the{" "}
+                  <span className="text-foreground font-medium">bonuses</span> added on top, applied
+                  retroactively (only the difference is paid when a post reaches a higher tier).
+                  These rules are the same for trial and active creators.
+                </div>
                 <div className="space-y-3">
                   {payoutTiers.map((tier, index) => (
                     <div key={index} className="flex gap-4 items-end">
@@ -194,20 +245,16 @@ export default function Settings() {
                     Posts must have at least this many views to qualify for payout
                   </p>
                 </div>
-                <div>
-                  <Label htmlFor="trialDays">Trial Period (Days)</Label>
-                  <Input
-                    id="trialDays"
-                    type="number"
-                    defaultValue={14}
-                    placeholder="14"
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    How long creators stay in trial before promotion
+                <div className="rounded-md border bg-muted/40 p-3">
+                  <p className="text-sm font-medium">Trial period</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    There is no fixed trial length. Trial creators stay in trial and are paid on the same
+                    payout tiers as active creators until you manually re-tag them as "Active" on the Creator
+                    Roster. There's nothing to configure here.
                   </p>
                 </div>
                 <div>
-                  <Label htmlFor="trialGoal">Trial View Goal</Label>
+                  <Label htmlFor="trialGoal">Trial View Milestone (display only)</Label>
                   <Input
                     id="trialGoal"
                     type="number"
@@ -215,7 +262,7 @@ export default function Settings() {
                     placeholder="10000"
                   />
                   <p className="text-xs text-muted-foreground mt-2">
-                    View count needed to qualify for trial bonus
+                    The view milestone shown on the Overview trial progress bars (does not affect pay).
                   </p>
                 </div>
                 <Button disabled>Save Settings</Button>

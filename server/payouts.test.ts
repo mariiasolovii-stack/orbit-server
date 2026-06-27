@@ -1,121 +1,82 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
+import { totalEarnedForViews, calcPayout, BASE_RATE } from "./routers";
 
-// Test retroactive payout calculation logic
-describe('Retroactive Payout Calculation', () => {
-  const defaultTiers = [
-    { views: 1000, amount: 25 },
-    { views: 10000, amount: 30 },
-    { views: 100000, amount: 75 },
-    { views: 500000, amount: 200 },
-    { views: 1000000, amount: 500 },
-  ];
+// The unified payout model: every creator (trial and active) earns a $20 base
+// per qualifying video (300+ views) plus the single highest bonus tier reached.
+// Bonuses are retroactive/incremental.
 
-  const calculatePayoutForViews = (views: number, tiers: typeof defaultTiers, lastPaidTier: number = 0) => {
-    const applicableTier = tiers.filter(t => views >= t.views).pop();
-    if (!applicableTier || views < 300) return 0;
-    
-    const lastPaidAmount = lastPaidTier > 0 ? tiers.find(t => t.amount === lastPaidTier)?.amount || 0 : 0;
-    return Math.max(0, applicableTier.amount - lastPaidAmount);
-  };
-
-  it('should return 0 for posts with less than 300 views', () => {
-    expect(calculatePayoutForViews(100, defaultTiers)).toBe(0);
-    expect(calculatePayoutForViews(299, defaultTiers)).toBe(0);
+describe("totalEarnedForViews (universal model)", () => {
+  it("pays nothing below the 300-view minimum", () => {
+    expect(totalEarnedForViews(0)).toBe(0);
+    expect(totalEarnedForViews(299)).toBe(0);
   });
 
-  it('should pay the tier amount for first payout', () => {
-    expect(calculatePayoutForViews(1000, defaultTiers)).toBe(25);
-    expect(calculatePayoutForViews(10000, defaultTiers)).toBe(30);
-    expect(calculatePayoutForViews(100000, defaultTiers)).toBe(75);
+  it("pays the $20 base once a post qualifies but is below the first bonus tier", () => {
+    expect(totalEarnedForViews(300)).toBe(20);
+    expect(totalEarnedForViews(5000)).toBe(20);
+    expect(totalEarnedForViews(9999)).toBe(20);
   });
 
-  it('should pay only the difference when crossing tiers', () => {
-    // Post starts at 1k views (tier 1: $25)
-    expect(calculatePayoutForViews(1000, defaultTiers, 0)).toBe(25);
-    
-    // Post crosses to 10k views (tier 2: $30)
-    // Should pay difference: $30 - $25 = $5
-    expect(calculatePayoutForViews(10000, defaultTiers, 25)).toBe(5);
-    
-    // Post crosses to 100k views (tier 3: $75)
-    // Should pay difference: $75 - $30 = $45
-    expect(calculatePayoutForViews(100000, defaultTiers, 30)).toBe(45);
+  it("adds the correct bonus on top of the base at each tier", () => {
+    expect(totalEarnedForViews(10000)).toBe(BASE_RATE + 10); // 30
+    expect(totalEarnedForViews(25000)).toBe(BASE_RATE + 50); // 70
+    expect(totalEarnedForViews(50000)).toBe(BASE_RATE + 150); // 170
+    expect(totalEarnedForViews(100000)).toBe(BASE_RATE + 300); // 320
+    expect(totalEarnedForViews(250000)).toBe(BASE_RATE + 400); // 420
+    expect(totalEarnedForViews(1000000)).toBe(BASE_RATE + 500); // 520
+    expect(totalEarnedForViews(1500000)).toBe(BASE_RATE + 1000); // 1020
+    expect(totalEarnedForViews(5000000)).toBe(BASE_RATE + 1500); // 1520
   });
 
-  it('should not double-pay when views stay in same tier', () => {
-    expect(calculatePayoutForViews(5000, defaultTiers, 25)).toBe(0);
-    expect(calculatePayoutForViews(9999, defaultTiers, 25)).toBe(0);
+  it("uses the highest applicable bonus tier", () => {
+    // 150k views -> 100k tier ($300), not 50k ($150)
+    expect(totalEarnedForViews(150000)).toBe(BASE_RATE + 300);
+    // 2M views -> 1.5M tier ($1000), not 1M ($500)
+    expect(totalEarnedForViews(2000000)).toBe(BASE_RATE + 1000);
+    // 6M views -> 5M tier ($1500)
+    expect(totalEarnedForViews(6000000)).toBe(BASE_RATE + 1500);
   });
 });
 
-// Test trial creator payout logic
-describe('Trial Creator Payout Logic', () => {
-  const calculateTrialPayout = (views: number, isWarmupPost: boolean = false) => {
-    const baseRate = 20;
-    const warmupRate = 5;
-    
-    if (isWarmupPost) return warmupRate;
-    
-    // Base rate for all posts
-    let payout = baseRate;
-    
-    // Tiered bonuses
-    const bonuses = [
-      { views: 10000, bonus: 10 },
-      { views: 25000, bonus: 50 },
-      { views: 50000, bonus: 150 },
-      { views: 100000, bonus: 300 },
-      { views: 250000, bonus: 400 },
-      { views: 1000000, bonus: 500 },
-      { views: 1500000, bonus: 1000 },
-      { views: 5000000, bonus: 1500 },
-    ];
-    
-    for (const bonus of bonuses) {
-      if (views >= bonus.views) {
-        payout = bonus.bonus; // Replace with bonus amount (not additive)
-      }
-    }
-    
-    return payout;
-  };
-
-  it('should pay $5 for warmup posts', () => {
-    expect(calculateTrialPayout(0, true)).toBe(5);
-    expect(calculateTrialPayout(100, true)).toBe(5);
+describe("calcPayout (retroactive / incremental)", () => {
+  const approved = (views: number, lastPaidTier = 0) => ({
+    reviewStatus: "approved",
+    views,
+    lastPaidTier,
   });
 
-  it('should pay $20 base rate for regular posts', () => {
-    expect(calculateTrialPayout(300)).toBe(20);
-    expect(calculateTrialPayout(5000)).toBe(20);
+  it("returns 0 for unapproved posts", () => {
+    expect(calcPayout({ reviewStatus: "pending", views: 100000, lastPaidTier: 0 }).amount).toBe(0);
   });
 
-  it('should pay tiered bonuses based on views', () => {
-    expect(calculateTrialPayout(10000)).toBe(10);
-    expect(calculateTrialPayout(25000)).toBe(50);
-    expect(calculateTrialPayout(50000)).toBe(150);
-    expect(calculateTrialPayout(100000)).toBe(300);
-    expect(calculateTrialPayout(250000)).toBe(400);
-    expect(calculateTrialPayout(1000000)).toBe(500);
-    expect(calculateTrialPayout(1500000)).toBe(1000);
-    expect(calculateTrialPayout(5000000)).toBe(1500);
+  it("returns 0 below the minimum view threshold", () => {
+    expect(calcPayout(approved(299)).amount).toBe(0);
   });
 
-  it('should use highest applicable bonus tier', () => {
-    // 150k views: should be in 100k tier ($300), not 50k tier ($150)
-    expect(calculateTrialPayout(150000)).toBe(300);
-    
-    // 2M views: should be in 1.5M tier ($1000), not 1M tier ($500)
-    expect(calculateTrialPayout(2000000)).toBe(1000);
+  it("pays the full amount earned on first payout", () => {
+    expect(calcPayout(approved(300)).amount).toBe(20);
+    expect(calcPayout(approved(10000)).amount).toBe(30);
+    expect(calcPayout(approved(100000)).amount).toBe(320);
   });
-});
 
-// Test minimum view threshold
-describe('Minimum View Threshold', () => {
-  it('should require minimum 300 views to qualify', () => {
-    const minViews = 300;
-    expect(299 < minViews).toBe(true);
-    expect(300 >= minViews).toBe(true);
-    expect(301 >= minViews).toBe(true);
+  it("pays only the difference when a post crosses into a higher tier", () => {
+    // Already paid $20 base, post now at 10k -> total $30, owe $10
+    expect(calcPayout(approved(10000, 20)).amount).toBe(10);
+    // Already paid $30, post now at 100k -> total $320, owe $290
+    expect(calcPayout(approved(100000, 30)).amount).toBe(290);
+    // Already paid $320, post now at 1M -> total $520, owe $200
+    expect(calcPayout(approved(1000000, 320)).amount).toBe(200);
+  });
+
+  it("does not double-pay when views stay within the same tier", () => {
+    // Already paid $30 at 10k, still at 24k (same 10k tier) -> owe 0
+    expect(calcPayout(approved(24000, 30)).amount).toBe(0);
+    // Already paid base $20, still at 9,999 -> owe 0
+    expect(calcPayout(approved(9999, 20)).amount).toBe(0);
+  });
+
+  it("labels base vs bonus payouts", () => {
+    expect(calcPayout(approved(5000)).type).toBe("base");
+    expect(calcPayout(approved(10000)).type).toBe("bonus");
   });
 });

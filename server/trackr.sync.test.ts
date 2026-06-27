@@ -79,6 +79,9 @@ describe('Trackr Sync Integration', () => {
     // engagement captured
     expect(createdPosts[0].views).toBe(1500);
     expect(createdPosts[0].likes).toBe(50);
+    // Trackr-synced posts are auto-approved (already live/verified)
+    expect(createdPosts[0].reviewStatus).toBe('approved');
+    expect(createdPosts[1].reviewStatus).toBe('approved');
   });
 
   it('updates existing posts matched by trackr post id', async () => {
@@ -143,6 +146,57 @@ describe('Trackr Sync Integration', () => {
     expect(result.fetched).toBe(2);
     expect(result.errors.length).toBe(1);
     expect(result.errors[0]).toContain('Failed to sync post');
+  });
+
+  it('skips creators that are archived with syncing disabled', async () => {
+    (axios.get as any).mockResolvedValue({ data: { data: [mockTrackrPosts[0]] } });
+    // creator1 exists but has syncEnabled = 0 (archived + opted out)
+    vi.spyOn(db, 'listCreators').mockResolvedValue([
+      { id: 'c-1', name: 'creator1', tiktokHandle: 'creator1', instagramHandle: null, syncEnabled: 0 } as any,
+    ]);
+    vi.spyOn(db, 'listPosts').mockResolvedValue([]);
+    const createPostSpy = vi.spyOn(db, 'createPost');
+    const updatePostSpy = vi.spyOn(db, 'updatePost');
+
+    const result = await trackr.syncTrackrPosts('test-key');
+
+    expect(result.unchanged).toBe(1);
+    expect(result.newPosts).toBe(0);
+    expect(result.updatedPosts).toBe(0);
+    expect(createPostSpy).not.toHaveBeenCalled();
+    expect(updatePostSpy).not.toHaveBeenCalled();
+  });
+
+  it('still syncs fired-but-not-archived creators (syncEnabled = 1)', async () => {
+    (axios.get as any).mockResolvedValue({ data: { data: [mockTrackrPosts[0]] } });
+    vi.spyOn(db, 'listCreators').mockResolvedValue([
+      { id: 'c-1', name: 'creator1', tiktokHandle: 'creator1', instagramHandle: null, status: 'fired', syncEnabled: 1 } as any,
+    ]);
+    vi.spyOn(db, 'listPosts').mockResolvedValue([
+      { id: 'p-1', creatorId: 'c-1', postUrl: mockTrackrPosts[0].link, trackrPostId: 'tp-1', views: 1000, likes: 10, comments: 0, shares: 0, saves: 0 } as any,
+    ]);
+    vi.spyOn(db, 'updatePost').mockResolvedValue({} as any);
+
+    const result = await trackr.syncTrackrPosts('test-key');
+
+    expect(result.updatedPosts).toBe(1);
+  });
+
+  it('matches creators by handle even when @ was entered (normalized)', async () => {
+    (axios.get as any).mockResolvedValue({ data: { data: [mockTrackrPosts[0]] } });
+    // stored handle has a leading @ but should still match 'creator1'
+    vi.spyOn(db, 'listCreators').mockResolvedValue([
+      { id: 'c-1', name: 'Some Name', tiktokHandle: '@creator1', instagramHandle: null, syncEnabled: 1 } as any,
+    ]);
+    vi.spyOn(db, 'listPosts').mockResolvedValue([]);
+    const createCreatorSpy = vi.spyOn(db, 'createCreator');
+    vi.spyOn(db, 'createPost').mockResolvedValue({ id: 'p-1' } as any);
+
+    const result = await trackr.syncTrackrPosts('test-key');
+
+    expect(result.newCreators).toBe(0);
+    expect(createCreatorSpy).not.toHaveBeenCalled();
+    expect(result.newPosts).toBe(1);
   });
 
   it('uses the correct campaign id and endpoint', async () => {
