@@ -222,3 +222,14 @@
 - [x] Added creators.merge tRPC mutation: reassigns all posts from sourceId to targetId, deletes source creator
 - [x] Added Merge button to Creator Roster UI: opens a dialog to select target creator, with destructive confirmation
 - [x] TypeScript clean (pnpm check) + 43 tests passing + checkpoint
+
+## Round 9 - Correct dual-platform payout rules (this session) - COMPLETED
+- [x] $20 base ONLY if the video was posted on BOTH TikTok AND Instagram (single-platform videos get $0 base)
+- [x] Bonus = highest view count across both platforms for that video (not per-post, per video-group)
+- [x] Add crosspost_group_id column to posts schema (migration 0005) + backfill 2,602 posts (718 dual-platform groups, 1,144 solo)
+- [x] Rewrite payout helpers: calcGroupPayout, totalEarnedForGroup, groupPostsByGroupId, resolveGroup
+- [x] Update calculatePending, markPaid, getBreakdown to use group-based logic
+- [x] Rewrite PayoutQueue breakdown UI: dual-platform table with TT/IG view columns, bold higher-view count, bonus-platform badge, single-platform exclusion section
+- [x] Update info banner to explain new dual-platform rule
+- [x] Rewrite all payout tests for new API (74 tests passing, 9 test files)
+- [x] TypeScript clean (pnpm check) + checkpoint

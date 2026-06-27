@@ -3,9 +3,12 @@ import * as db from "./db";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
-// Verifies that `payouts.markPaid` records payout history and advances each
-// post's `lastPaidTier` so the retroactive math does NOT re-pay the same amount
-// on the next cycle.
+// Verifies that `payouts.markPaid` records payout history and advances the
+// primary post's `lastPaidTier` so the retroactive math does NOT re-pay the
+// same amount on the next cycle.
+//
+// Under the dual-platform model, a video only earns if posted on BOTH TikTok
+// AND Instagram. Posts here are set up as TT+IG pairs sharing a crosspostGroupId.
 
 function ctx(): TrpcContext {
   return {
@@ -35,12 +38,15 @@ describe("payouts.markPaid", () => {
     vi.restoreAllMocks();
 
     postsStore = [
-      // 100k views, approved, never paid -> total earned $320
-      { id: "p1", creatorId: "c1", views: 100000, reviewStatus: "approved", postDate: jun(10), lastPaidTier: 0 },
-      // 10k views, approved, never paid -> total earned $30
-      { id: "p2", creatorId: "c1", views: 10000, reviewStatus: "approved", postDate: jun(12), lastPaidTier: 0 },
-      // pending post -> not paid
-      { id: "p3", creatorId: "c1", views: 500000, reviewStatus: "pending", postDate: jun(13), lastPaidTier: 0 },
+      // Group 1: TT 100k + IG 80k -> max 100k -> $320
+      { id: "p1-tt", creatorId: "c1", views: 100000, reviewStatus: "approved", postDate: jun(10), lastPaidTier: 0, isCrosspostDuplicate: 0, platform: "TikTok", crosspostGroupId: "grp1" },
+      { id: "p1-ig", creatorId: "c1", views: 80000, reviewStatus: "approved", postDate: jun(10), lastPaidTier: 0, isCrosspostDuplicate: 1, platform: "Instagram", crosspostGroupId: "grp1" },
+      // Group 2: TT 10k + IG 8k -> max 10k -> $30
+      { id: "p2-tt", creatorId: "c1", views: 10000, reviewStatus: "approved", postDate: jun(12), lastPaidTier: 0, isCrosspostDuplicate: 0, platform: "TikTok", crosspostGroupId: "grp2" },
+      { id: "p2-ig", creatorId: "c1", views: 8000, reviewStatus: "approved", postDate: jun(12), lastPaidTier: 0, isCrosspostDuplicate: 1, platform: "Instagram", crosspostGroupId: "grp2" },
+      // Group 3: pending pair -> not paid
+      { id: "p3-tt", creatorId: "c1", views: 500000, reviewStatus: "pending", postDate: jun(13), lastPaidTier: 0, isCrosspostDuplicate: 0, platform: "TikTok", crosspostGroupId: "grp3" },
+      { id: "p3-ig", creatorId: "c1", views: 400000, reviewStatus: "pending", postDate: jun(13), lastPaidTier: 0, isCrosspostDuplicate: 1, platform: "Instagram", crosspostGroupId: "grp3" },
     ];
     payoutsStore = [];
 
@@ -61,20 +67,22 @@ describe("payouts.markPaid", () => {
     });
   });
 
-  it("records payouts for approved posts and advances lastPaidTier", async () => {
+  it("records payouts for approved dual-platform groups and advances lastPaidTier on primary", async () => {
     const caller = appRouter.createCaller(ctx());
     const res = await caller.payouts.markPaid({ creatorId: "c1", year: 2026, month: 5 });
 
-    // Total $320 + $30 = $350 across 2 approved posts (pending excluded)
+    // Total $320 + $30 = $350 across 2 approved groups (pending excluded)
     expect(res.totalPaid).toBe(350);
     expect(res.postsPaid).toBe(2);
+    // One payout record per group (recorded against the primary post)
     expect(payoutsStore.length).toBe(2);
 
-    // lastPaidTier advanced to each post's total earned
-    expect(postsStore.find((p) => p.id === "p1")!.lastPaidTier).toBe(320);
-    expect(postsStore.find((p) => p.id === "p2")!.lastPaidTier).toBe(30);
-    // pending post untouched
-    expect(postsStore.find((p) => p.id === "p3")!.lastPaidTier).toBe(0);
+    // lastPaidTier advanced on primary posts only
+    expect(postsStore.find((p) => p.id === "p1-tt")!.lastPaidTier).toBe(320);
+    expect(postsStore.find((p) => p.id === "p2-tt")!.lastPaidTier).toBe(30);
+    // duplicate posts and pending posts untouched
+    expect(postsStore.find((p) => p.id === "p1-ig")!.lastPaidTier).toBe(0);
+    expect(postsStore.find((p) => p.id === "p3-tt")!.lastPaidTier).toBe(0);
   });
 
   it("owes $0 on the next cycle after being marked paid (no double-pay)", async () => {
@@ -91,8 +99,8 @@ describe("payouts.markPaid", () => {
     // First payment at current views
     await caller.payouts.markPaid({ creatorId: "c1", year: 2026, month: 5 });
 
-    // p2 grows from 10k ($30 total) to 100k ($320 total) -> owes the $290 difference
-    postsStore.find((p) => p.id === "p2")!.views = 100000;
+    // Group 2 TikTok grows from 10k ($30 total) to 100k ($320 total) -> owes the $290 difference
+    postsStore.find((p) => p.id === "p2-tt")!.views = 100000;
 
     const pending = await caller.payouts.calculatePending({ year: 2026, month: 5 });
     expect(pending["c1"]).toBe(290);

@@ -73,6 +73,7 @@ export const posts = mysqlTable("posts", {
   isTrialPost: int("is_trial_post").default(0), // boolean flag
   lastPaidTier: int("last_paid_tier").default(0), // highest tier amount already paid for this post
   isCrosspostDuplicate: int("is_crosspost_duplicate").default(0), // 1 = same video crossposted to 2nd platform, no extra $20 base
+  crosspostGroupId: varchar("crosspost_group_id", { length: 128 }), // shared key for TT+IG pair of the same video
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),

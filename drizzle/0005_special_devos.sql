@@ -1,0 +1,1 @@
+ALTER TABLE `posts` ADD `crosspost_group_id` varchar(128);

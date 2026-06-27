@@ -10,15 +10,17 @@ import * as trackr from "./trackr";
 // ============ PAYOUT CALCULATION HELPERS ============
 
 /**
- * Universal payout model — applies to ALL creators (trial and active alike).
- * Everyone earns a $20 base per qualifying video plus retroactive view-tier
- * bonuses. "Trial" is now only a roster label (no separate pay rules) until a
- * creator is manually re-tagged "active".
+ * Dual-platform payout model:
+ * - $20 base ONLY if the video was posted on BOTH TikTok AND Instagram.
+ *   A video on only one platform earns $0 base.
+ * - Bonus = the single highest tier reached by the HIGHER view count
+ *   across both platforms for that video.
+ * - lastPaidTier is stored on the PRIMARY post (isCrosspostDuplicate=0)
+ *   and represents the cumulative amount already paid for the whole group.
  *
- * Bonus tiers (cumulative, retroactive — pay only the incremental difference):
+ * Bonus tiers (retroactive — pay only the incremental difference):
  *   10k -> +$10, 25k -> +$50, 50k -> +$150, 100k -> +$300,
  *   250k -> +$400, 1M -> +$500, 1.5M -> +$1,000, 5M -> +$1,500
- * Base rate ($20) applies once the post has at least the minimum qualifying views.
  */
 export const BASE_RATE = 20;
 export const MIN_QUALIFYING_VIEWS = 300;
@@ -33,9 +35,25 @@ export const BONUS_TIERS = [
   { views: 10000, amount: 10 },
 ];
 
+/** Bonus amount for a given view count (0 if below all tiers). */
+export function bonusForViews(views: number): number {
+  const tier = BONUS_TIERS.find(t => views >= t.views);
+  return tier ? tier.amount : 0;
+}
+
 /**
- * Compute the TOTAL earned for a post at its current view count under the
- * universal model: $20 base + the single highest bonus tier reached.
+ * Compute the TOTAL earned for a video GROUP at the given max view count.
+ * hasBothPlatforms must be true for the $20 base to apply.
+ */
+export function totalEarnedForGroup(maxViews: number, hasBothPlatforms: boolean): number {
+  if (!hasBothPlatforms) return 0;
+  if ((maxViews || 0) < MIN_QUALIFYING_VIEWS) return 0;
+  return BASE_RATE + bonusForViews(maxViews);
+}
+
+/**
+ * Legacy single-post helper (kept for tests that haven't migrated yet).
+ * @deprecated Use calcGroupPayout instead.
  */
 export function totalEarnedForViews(views: number): number {
   if ((views || 0) < MIN_QUALIFYING_VIEWS) return 0;
@@ -44,27 +62,70 @@ export function totalEarnedForViews(views: number): number {
 }
 
 /**
- * Calculate the incremental pending payout for a single post (retroactive):
- * total earned at current views minus what has already been paid.
+ * Calculate the incremental pending payout for a VIDEO GROUP (retroactive).
+ *
+ * @param primary   The primary post (isCrosspostDuplicate=0) — carries lastPaidTier.
+ * @param duplicate The crossposted partner post on the other platform, or null if
+ *                  the video was only posted on one platform.
  */
-export function calcPayout(post: any): { amount: number; type: string } {
-  if (post.reviewStatus !== 'approved') return { amount: 0, type: 'pending' };
-  // Crosspost duplicates (same video on a 2nd platform) do NOT earn a second $20 base.
-  // They are tracked for views but excluded from payout.
-  if (post.isCrosspostDuplicate === 1 || post.isCrosspostDuplicate === true) {
-    return { amount: 0, type: 'crosspost' };
+export function calcGroupPayout(
+  primary: any,
+  duplicate: any | null
+): { amount: number; type: string; maxViews: number; hasBothPlatforms: boolean } {
+  if (primary.reviewStatus !== 'approved') {
+    return { amount: 0, type: 'pending', maxViews: 0, hasBothPlatforms: false };
   }
-  const views = post.views || 0;
-  if (views < MIN_QUALIFYING_VIEWS) return { amount: 0, type: 'pending' };
 
-  const total = totalEarnedForViews(views);
-  const lastPaid = post.lastPaidTier || 0; // stores cumulative amount already paid
-  const tier = BONUS_TIERS.find(t => views >= t.views);
+  // Require both TikTok and Instagram for base pay.
+  const platforms = new Set<string>();
+  platforms.add((primary.platform || '').toLowerCase());
+  if (duplicate) platforms.add((duplicate.platform || '').toLowerCase());
+  const hasBothPlatforms =
+    (platforms.has('tiktok') && platforms.has('instagram'));
+
+  const primaryViews = primary.views || 0;
+  const duplicateViews = duplicate ? (duplicate.views || 0) : 0;
+  const maxViews = Math.max(primaryViews, duplicateViews);
+
+  const total = totalEarnedForGroup(maxViews, hasBothPlatforms);
+  const lastPaid = primary.lastPaidTier || 0;
+  const bonus = bonusForViews(maxViews);
 
   return {
     amount: Math.max(0, total - lastPaid),
-    type: tier ? 'bonus' : 'base',
+    type: bonus > 0 ? 'bonus' : (hasBothPlatforms && maxViews >= MIN_QUALIFYING_VIEWS ? 'base' : 'pending'),
+    maxViews,
+    hasBothPlatforms,
   };
+}
+
+/**
+ * Group a flat list of posts by crosspostGroupId.
+ * Returns a map of groupId -> [primary, ...duplicates].
+ * Posts without a groupId are treated as solo (their own group).
+ */
+export function groupPostsByGroupId(posts: any[]): Map<string, any[]> {
+  const groups = new Map<string, any[]>();
+  for (const p of posts) {
+    const key = (p as any).crosspostGroupId || p.id; // fallback: solo group
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(p);
+  }
+  return groups;
+}
+
+/**
+ * From a group of posts (same crosspostGroupId), identify the primary post
+ * (isCrosspostDuplicate=0, or the one with the most views if all are 0) and
+ * the duplicate (the other platform's post, if present).
+ */
+export function resolveGroup(groupPosts: any[]): { primary: any; duplicate: any | null } {
+  // Primary = the post marked as NOT a crosspost duplicate.
+  // If none are marked (e.g. solo post), just use the first.
+  const primary = groupPosts.find(p => !(p.isCrosspostDuplicate === 1 || p.isCrosspostDuplicate === true))
+    ?? groupPosts[0];
+  const duplicate = groupPosts.find(p => p.id !== primary.id) ?? null;
+  return { primary, duplicate };
 }
 
 export const appRouter = router({
@@ -349,20 +410,22 @@ export const appRouter = router({
 
         const pending: Record<string, number> = {};
 
-        for (const post of posts) {
+        // Filter to posts in this pay period, then group by crosspostGroupId.
+        const periodPosts = posts.filter(post => {
           const creator = creators.find(c => c.id === post.creatorId);
-          if (!creator) continue;
-          // Fired/archived creators are not owed new payouts.
-          if (creator.status === 'fired' || (creator as any).archived === 1) continue;
-
-          // Scope to the selected calendar-month pay period by post date.
+          if (!creator) return false;
+          if (creator.status === 'fired' || (creator as any).archived === 1) return false;
           const postDate = post.postDate ? new Date(post.postDate) : null;
-          if (!postDate || postDate < periodStart || postDate >= periodEnd) continue;
+          return postDate && postDate >= periodStart && postDate < periodEnd;
+        });
 
-          // Universal payout model for everyone (trial + active).
-          const { amount } = calcPayout(post);
+        // Group by crosspostGroupId and calculate payout per group.
+        const groups = groupPostsByGroupId(periodPosts);
+        for (const groupPosts of Array.from(groups.values())) {
+          const { primary, duplicate } = resolveGroup(groupPosts);
+          const { amount } = calcGroupPayout(primary, duplicate);
           if (amount > 0) {
-            pending[post.creatorId] = (pending[post.creatorId] || 0) + amount;
+            pending[primary.creatorId] = (pending[primary.creatorId] || 0) + amount;
           }
         }
 
@@ -396,25 +459,28 @@ export const appRouter = router({
         const posts = await db.listPosts();
         const payoutDate = new Date();
         let totalPaid = 0;
-        let postsPaid = 0;
+        let groupsPaid = 0;
 
-        for (const post of posts) {
-          if (post.creatorId !== input.creatorId) continue;
-
-          // Scope to the selected calendar-month pay period by post date.
+        // Filter to this creator's posts in this pay period.
+        const periodPosts = posts.filter(post => {
+          if (post.creatorId !== input.creatorId) return false;
           const postDate = post.postDate ? new Date(post.postDate) : null;
-          if (!postDate || postDate < periodStart || postDate >= periodEnd) continue;
+          return postDate && postDate >= periodStart && postDate < periodEnd;
+        });
 
-          const { amount, type } = calcPayout(post);
+        // Group and calculate payout per group.
+        const groups = groupPostsByGroupId(periodPosts);
+        for (const groupPosts of Array.from(groups.values())) {
+          const { primary, duplicate } = resolveGroup(groupPosts);
+          const { amount, type, maxViews } = calcGroupPayout(primary, duplicate);
           if (amount <= 0) continue;
 
-          // Advance lastPaidTier to the full total earned at current views so the
-          // incremental difference becomes 0 until the post crosses a higher tier.
-          const newPaidTotal = totalEarnedForViews(post.views || 0);
-          await db.updatePost(post.id, { lastPaidTier: newPaidTotal });
+          // Advance lastPaidTier on the PRIMARY post to the full group total earned.
+          const newPaidTotal = totalEarnedForGroup(maxViews, true);
+          await db.updatePost(primary.id, { lastPaidTier: newPaidTotal });
           await db.createPayout({
             creatorId: input.creatorId,
-            postId: post.id,
+            postId: primary.id,
             amount,
             payoutType: type === 'bonus' ? 'bonus' : 'post',
             payoutDate,
@@ -422,10 +488,10 @@ export const appRouter = router({
           } as any);
 
           totalPaid += amount;
-          postsPaid += 1;
+          groupsPaid += 1;
         }
 
-        return { creatorId: input.creatorId, totalPaid, postsPaid };
+        return { creatorId: input.creatorId, totalPaid, postsPaid: groupsPaid };
       }),
 
     // Full per-post payout breakdown for a given creator + pay period.
@@ -447,34 +513,53 @@ export const appRouter = router({
         const periodEnd = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0));
 
         const allPosts = await db.listPosts();
-        const rows = allPosts
-          .filter(p => {
-            if (p.creatorId !== input.creatorId) return false;
-            const d = p.postDate ? new Date(p.postDate) : null;
-            return d && d >= periodStart && d < periodEnd;
-          })
-          .map(p => {
-            const { amount, type } = calcPayout(p);
-            return {
-              id: p.id,
-              platform: p.platform,
-              postDate: p.postDate,
-              postUrl: p.postUrl,
-              title: (p as any).title || null,
-              views: p.views || 0,
-              likes: p.likes || 0,
-              comments: p.comments || 0,
-              shares: p.shares || 0,
-              saves: p.saves || 0,
-              reviewStatus: p.reviewStatus,
-              isCrosspostDuplicate: (p as any).isCrosspostDuplicate === 1,
-              lastPaidTier: p.lastPaidTier || 0,
-              payoutAmount: amount,
-              payoutType: type,
-            };
-          })
-          .sort((a, b) => new Date(b.postDate).getTime() - new Date(a.postDate).getTime());
+        const periodPosts = allPosts.filter(p => {
+          if (p.creatorId !== input.creatorId) return false;
+          const d = p.postDate ? new Date(p.postDate) : null;
+          return d && d >= periodStart && d < periodEnd;
+        });
 
+        // Group by crosspostGroupId and build one row per group.
+        const groups = groupPostsByGroupId(periodPosts);
+        const rows: any[] = [];
+
+        for (const groupPosts of Array.from(groups.values())) {
+          const { primary, duplicate } = resolveGroup(groupPosts);
+          const { amount, type, maxViews, hasBothPlatforms } = calcGroupPayout(primary, duplicate);
+
+          // Determine which platform has the higher views (drives the bonus).
+          const primaryViews = primary.views || 0;
+          const duplicateViews = duplicate ? (duplicate.views || 0) : 0;
+          const bonusPlatform = duplicate
+            ? (primaryViews >= duplicateViews ? primary.platform : duplicate.platform)
+            : primary.platform;
+
+          rows.push({
+            id: primary.id,
+            platform: primary.platform,
+            partnerPlatform: duplicate ? duplicate.platform : null,
+            postDate: primary.postDate,
+            postUrl: primary.postUrl,
+            partnerPostUrl: duplicate ? duplicate.postUrl : null,
+            title: (primary as any).title || null,
+            views: primaryViews,
+            partnerViews: duplicateViews,
+            maxViews,
+            bonusPlatform,
+            hasBothPlatforms,
+            likes: primary.likes || 0,
+            comments: primary.comments || 0,
+            shares: primary.shares || 0,
+            saves: primary.saves || 0,
+            reviewStatus: primary.reviewStatus,
+            isCrosspostDuplicate: (primary as any).isCrosspostDuplicate === 1,
+            lastPaidTier: primary.lastPaidTier || 0,
+            payoutAmount: amount,
+            payoutType: type,
+          });
+        }
+
+        rows.sort((a, b) => new Date(b.postDate).getTime() - new Date(a.postDate).getTime());
         return rows;
       }),
   }),
