@@ -83,7 +83,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         name: z.string().min(1),
-        email: z.string().email().optional(),
+        email: z.union([z.string().email(), z.literal("")]).optional().nullable(),
         status: z.enum(['trial', 'active', 'fired']).default('trial'),
         compType: z.enum(['ppp', 'retainer']).default('ppp'),
         baseRate: z.number().default(25),
@@ -97,7 +97,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const creator = await db.createCreator({
           name: input.name,
-          email: input.email,
+          email: input.email ? input.email : null,
           status: input.status,
           compType: input.compType,
           baseRate: input.baseRate,
@@ -117,7 +117,7 @@ export const appRouter = router({
         id: z.string(),
         data: z.object({
           name: z.string().optional(),
-          email: z.string().email().optional(),
+          email: z.union([z.string().email(), z.literal("")]).optional().nullable(),
           status: z.enum(['trial', 'active', 'fired']).optional(),
           compType: z.enum(['ppp', 'retainer']).optional(),
           baseRate: z.number().optional(),
@@ -134,6 +134,9 @@ export const appRouter = router({
         const updateData: any = { ...input.data };
         if (input.data.platforms) {
           updateData.platforms = JSON.stringify(input.data.platforms);
+        }
+        if (updateData.email === "") {
+          updateData.email = null;
         }
         return db.updateCreator(input.id, updateData);
       }),
