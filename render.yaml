@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: orbit-server
+    runtime: node
+    plan: free
+    buildCommand: pnpm install && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        scope: build
+      - key: JWT_SECRET
+        scope: build
+      - key: VITE_APP_ID
+        scope: build
+      - key: OAUTH_SERVER_URL
+        scope: build
+      - key: VITE_OAUTH_PORTAL_URL
+        scope: build
+      - key: OWNER_OPEN_ID
+        scope: build
+      - key: OWNER_NAME
+        scope: build
+      - key: BUILT_IN_FORGE_API_URL
+        scope: build
+      - key: BUILT_IN_FORGE_API_KEY
+        scope: build
+      - key: VITE_FRONTEND_FORGE_API_KEY
+        scope: build
+      - key: VITE_FRONTEND_FORGE_API_URL
+        scope: build
+      - key: TRACKR_API_KEY
+        scope: build
+      - key: VITE_ANALYTICS_ENDPOINT
+        scope: build
+      - key: VITE_ANALYTICS_WEBSITE_ID
+        scope: build
+      - key: VITE_APP_TITLE
+        scope: build
+      - key: VITE_APP_LOGO
+        scope: build
