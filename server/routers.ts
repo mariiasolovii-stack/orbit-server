@@ -562,6 +562,150 @@ export const appRouter = router({
         rows.sort((a, b) => new Date(b.postDate).getTime() - new Date(a.postDate).getTime());
         return rows;
       }),
+
+    generateInvoice: protectedProcedure
+      .input(
+        z.object({
+          creatorId: z.string(),
+          year: z.number().int().optional(),
+          month: z.number().int().min(0).max(11).optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const ExcelJS = require('exceljs');
+        const now = new Date();
+        const year = input.year ?? now.getUTCFullYear();
+        const month = input.month ?? now.getUTCMonth();
+        const periodStart = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+        const periodEnd = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0));
+
+        const creator = await db.getCreator(input.creatorId);
+        if (!creator) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Creator not found' });
+        }
+
+        const allPosts = await db.listPosts();
+        const periodPosts = allPosts.filter(p => {
+          if (p.creatorId !== input.creatorId) return false;
+          const d = p.postDate ? new Date(p.postDate) : null;
+          return d && d >= periodStart && d < periodEnd;
+        });
+
+        const groups = groupPostsByGroupId(periodPosts);
+        const invoiceRows: any[] = [];
+        let totalBase = 0;
+        let totalBonus = 0;
+        let videoCount = 0;
+
+        for (const groupPosts of Array.from(groups.values())) {
+          const { primary, duplicate } = resolveGroup(groupPosts);
+          const { amount, type, maxViews, hasBothPlatforms } = calcGroupPayout(primary, duplicate);
+
+          if (!hasBothPlatforms) continue;
+
+          const baseAmount = hasBothPlatforms ? BASE_RATE : 0;
+          const bonusAmount = bonusForViews(maxViews);
+          const totalAmount = baseAmount + bonusAmount;
+
+          if (totalAmount > 0) {
+            const primaryViews = primary.views || 0;
+            const duplicateViews = duplicate ? (duplicate.views || 0) : 0;
+            const bonusPlatform = primaryViews >= duplicateViews ? primary.platform : (duplicate?.platform || primary.platform);
+
+            invoiceRows.push({
+              date: primary.postDate ? new Date(primary.postDate).toLocaleDateString('en-US') : '',
+              platform: primary.platform,
+              partnerPlatform: duplicate ? duplicate.platform : '',
+              url: primary.postUrl || '',
+              partnerUrl: duplicate ? (duplicate.postUrl || '') : '',
+              views: primaryViews,
+              partnerViews: duplicateViews,
+              maxViews,
+              bonusPlatform,
+              baseAmount,
+              bonusAmount,
+              totalAmount,
+            });
+
+            totalBase += baseAmount;
+            totalBonus += bonusAmount;
+            videoCount += 1;
+          }
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Invoice');
+
+        worksheet.columns = [
+          { header: '', key: 'col1', width: 25 },
+          { header: '', key: 'col2', width: 5 },
+          { header: '', key: 'col3', width: 35 },
+        ];
+
+        const headerRows = [
+          ['Creator Name', '', creator.name],
+          ['Bonus Total', '', totalBonus],
+          ['Number of videos', '', videoCount],
+          ['Base Total', '', totalBase],
+          ['Total Month Compensation', '', totalBase + totalBonus],
+          ['Social Media Handle', '', ''],
+          ['TikTok', '', creator.tiktokHandle || ''],
+          ['Instagram', '', creator.instagramHandle || ''],
+          ['MONTH', '', `${year}-${String(month + 1).padStart(2, '0')}`],
+        ];
+
+        headerRows.forEach((row, idx) => {
+          const wsRow = worksheet.addRow(row);
+          if (idx < 5) {
+            wsRow.eachCell((cell: any) => {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF00' } };
+              cell.font = { bold: true };
+            });
+          }
+        });
+
+        worksheet.addRow([]);
+
+        const tableHeaderRow = worksheet.addRow([
+          'Video Link',
+          'Platform',
+          'Views',
+          'Tier',
+          'Bonus $',
+          'Base $',
+          'Total $',
+        ]);
+        tableHeaderRow.eachCell((cell: any) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D3D3D3' } };
+          cell.font = { bold: true };
+        });
+
+        invoiceRows.forEach(row => {
+          const tierName = BONUS_TIERS.find(t => row.maxViews >= t.views)?.views || '';
+          worksheet.addRow([
+            row.url,
+            `${row.platform}${row.partnerPlatform ? ` / ${row.partnerPlatform}` : ''}`,
+            `${row.views}${row.partnerViews ? ` / ${row.partnerViews}` : ''}`,
+            tierName ? `${(tierName / 1000).toFixed(0)}k` : '-',
+            row.bonusAmount,
+            row.baseAmount,
+            row.totalAmount,
+          ]);
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const base64 = buffer.toString('base64');
+        const filename = `Alta_Invoice_${creator.name}_${year}-${String(month + 1).padStart(2, '0')}.xlsx`;
+
+        return {
+          filename,
+          base64,
+          totalBase,
+          totalBonus,
+          totalAmount: totalBase + totalBonus,
+          videoCount,
+        };
+      }),
   }),
 
   // ============ SCRIPTS ============

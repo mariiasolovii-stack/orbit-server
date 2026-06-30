@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { trpc } from "@/lib/trpc";
 import {
   Loader2, DollarSign, Info, ChevronLeft, ChevronRight,
-  ChevronDown, ChevronUp, ExternalLink,
+  ChevronDown, ChevronUp, ExternalLink, Download,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
@@ -211,6 +211,7 @@ export default function PayoutQueue() {
   const [year, setYear] = useState(now.getUTCFullYear());
   const [month, setMonth] = useState(now.getUTCMonth()); // 0-indexed
   const [expandedCreator, setExpandedCreator] = useState<string | null>(null);
+  const generateInvoiceMutation = trpc.payouts.generateInvoice.useMutation();
 
   // Stable query input
   const period = useMemo(() => ({ year, month }), [year, month]);
@@ -374,6 +375,37 @@ export default function PayoutQueue() {
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                   "Mark Paid"
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  generateInvoiceMutation.mutate(
+                                    { creatorId, year, month },
+                                    {
+                                      onSuccess: (data: any) => {
+                                        const link = document.createElement('a');
+                                        const blob = new Blob([Buffer.from(data.base64, 'base64')], {
+                                          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                        });
+                                        link.href = URL.createObjectURL(blob);
+                                        link.download = data.filename;
+                                        link.click();
+                                        toast.success(`Invoice downloaded: ${data.filename}`);
+                                      },
+                                      onError: () => {
+                                        toast.error('Failed to generate invoice');
+                                      },
+                                    }
+                                  );
+                                }}
+                                disabled={generateInvoiceMutation.isPending}
+                              >
+                                {generateInvoiceMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <><Download className="h-4 w-4 mr-1" /> Invoice</>
                                 )}
                               </Button>
                               <Button

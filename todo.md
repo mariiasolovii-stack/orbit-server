@@ -223,6 +223,13 @@
 - [x] Added Merge button to Creator Roster UI: opens a dialog to select target creator, with destructive confirmation
 - [x] TypeScript clean (pnpm check) + 43 tests passing + checkpoint
 
+## Round 10 - Excel invoice generator (this session) - COMPLETED
+- [x] Add payouts.generateInvoice tRPC procedure: builds Excel file with creator header (name, handles, month), summary totals (base, bonus, total), and video table with date, platforms, views, tier, and amounts
+- [x] Wire Download Invoice button to Payout Queue UI (between Mark Paid and See breakdown)
+- [x] Button triggers mutation, downloads base64 Excel file, shows toast with filename
+- [x] 74 tests passing (no new tests needed, invoice is deterministic from existing payout logic)
+- [x] TypeScript clean (pnpm check) + checkpoint
+
 ## Round 9 - Correct dual-platform payout rules (this session) - COMPLETED
 - [x] $20 base ONLY if the video was posted on BOTH TikTok AND Instagram (single-platform videos get $0 base)
 - [x] Bonus = highest view count across both platforms for that video (not per-post, per video-group)
